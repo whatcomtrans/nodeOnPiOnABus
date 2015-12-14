@@ -22,6 +22,8 @@ patternEmitter.emit = function(event) {
 //TODO
 var awsIot = require('aws-iot-device-sdk');
 
+//TODO Need to move client certificates into the config file
+
 var thingShadows = awsIot.thingShadow(runConfig.IoTConfig);
 //Sample CODE follows, partially converted, see
 // https://github.com/aws/aws-iot-device-sdk-js/blob/master/README.md#examples
