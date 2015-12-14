@@ -31,7 +31,7 @@ var thingShadows = awsIot.thingShadow(runConfig.IoTConfig);
 //
 // Thing shadow state
 //
-var shadow = runConfig.shadow;
+var shadow = runConfig.shadow.state;
 var thingName = runConfig.IoTConfig.thingName;
 
 //
@@ -44,7 +44,7 @@ thingShadows.on('connect', function() {
 // After connecting to the AWS IoT platform, register interest in the
 // Thing Shadow.
 //
-    thingShadows.register(thingName);
+
 //
 // 2 seconds after registering, update the Thing Shadow
 // with the latest device state and save the clientToken
@@ -64,6 +64,8 @@ thingShadows.on('status',
     function(thingName, stat, clientToken, stateObject) {
        console.log('received '+stat+' on '+thingName+': '+
                    JSON.stringify(stateObject));
+      //When status (stat) = "accepted" commit queue pop
+
     });
 
 thingShadows.on('delta',
@@ -76,12 +78,13 @@ thingShadows.on('timeout',
     function(thingName, clientToken) {
        console.log('received timeout '+' on '+operation+': '+
                    clientToken);
+      //Commit queue pop here
     });
 
 //END
 
 //START:  Message queue to disk setup
-//TODO
+//TODO https://www.npmjs.com/package/file-queue
 //END
 
 //START: Process GPS events
@@ -106,7 +109,7 @@ patternEmitter.on("GPS\.message/", function(message) {
  	var msgString = message.message;
 	if (msgString.indexOf("$GPRMC") > -1) {
   	var sentence = nmea.parse(msgString);
-    sentence.lat = sentence.lat / 100;
+    sentence.lat = sentence.lat / 100;  //TODO Convert from DM.m to decimal, instead of devide by 100, grab first two or three for left side of decimal and then remaining device by 60 for right side of decimal
     sentence.lon = sentence.lon / 100 * -1;
     patternEmitter.emit("GPS.GPRMC",sentence);
   }
@@ -123,9 +126,34 @@ patternEmitter.on("GPS\.message/", function(message) {
 });
 //END
 
+patternEmitter.on("GPS\.GPRMC/", function(message) {
+  //TODO Update state
+  updateState();
+}
+
+var updateState = function () {
+  queue.push(runConfig.shadow.state, function(err){
+    //Attempt to send directly to AWS then exit
+    thingShadows.update(thingName,shadow);
+    process.exit(0);
+  });
+
+  //Pop until nothing left in queue, calling update each time
+  queue.length(function(err, length) {
+    popUpdates(length);
+  });
+}
+
+var popUpdates = function(count) {
+  for (i = 0; i < count; i++) {
+    queue.tpop();
+  }
+}
+
 exports.run = function(config) {
   runConfig = config;
-  patternEmitter.emit("Test", "Hello World");
 
   server.bind(runConfig.GPSudpPort);
+
+  thingShadows.register(thingName);
 }

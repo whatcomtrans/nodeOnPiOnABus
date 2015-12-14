@@ -14,7 +14,10 @@ exports.myconfig = {
   "shadow": {
     "state": {
       "desired": {
-        "VehicleNumber": "900"
+        "VehicleNumber": "900",
+        "lattitude": null,
+        "longitude": null,
+        "updated": null
       }
     }
   }
