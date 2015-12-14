@@ -1,0 +1,19 @@
+{
+  "name": "nodeOnPiOnABus",
+  "version": "0.0.1",
+  "description": "Node.js on a RasberyPi on a transit Bus",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/whatcomtrans/nodeOnPiOnABus.git"
+  },
+  "author": "Josh Nylander <joshn@ridewta.com> (http://github.com/whatcomtrans/)",
+  "license": "Public Domain",
+  "bugs": {
+    "url": "https://github.com/whatcomtrans/nodeOnPiOnABus/issues"
+  },
+  "homepage": "https://github.com/whatcomtrans/nodeOnPiOnABus"
+}
