@@ -85,6 +85,8 @@ thingShadows.on('timeout',
 
 //START:  Message queue to disk setup
 //TODO https://www.npmjs.com/package/file-queue
+var Queue = require('file-queue').Queue,
+    queue = new Queue('./queue', function(err){console.log("error setting up queue: " + err);});
 //END
 
 //START: Process GPS events
