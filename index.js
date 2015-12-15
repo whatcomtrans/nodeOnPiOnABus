@@ -10,6 +10,6 @@ var myconfig = require("./myconfig.js");
 
 var executable = require(myconfig.executable);
 
-executable.run();
+executable.run(myconfig);
 
-process.exit(0);
+//process.exit(0);

@@ -3,31 +3,49 @@ var runConfig;
 var emitter;
 var awsThingShadow;
 var messageQueue;
+var tpopCommit = null;
+var tpopRollback = null;
 
-patternEmitter.on("GPS\.GPRMC/", function(message) {
-  //TODO Update state
+//What is the point of this GPRMC listener outside of the listenForGPS function? Why not put it inside that function?
+emitter.on("GPS\.GPRMC/", function(message) {
+  //TODO Update local state runConfig
+  //Set the lat/long value and update timestamp on myconfig
+  runConfig.shadow.state.desired.lat = sentence.lat;
+  runConfig.shadow.state.desired.lon = sentence.lon;
+  runConfig.shadow.state.desired.updated = Math.floor(new Date() / 1000);
+
   updateState();
 }
 
 var updateState = function () {
-  messageQueue.push(runConfig.shadow.state, function(err){
-    //Attempt to send directly to AWS then exit
-    // TODO thingShadows.update(thingName,shadow);
-    process.exit(0);
-  });
+	//Add status to end of queue
+  	messageQueue.push(runConfig.shadow.state, function(err){
+    	//Attempt to send directly to AWS then exit
+    	thingShadows.update(thingName,shadow);
+    	process.exit(0);
+  	});
+  	tpopFunc();
+}
 
-  // Atempt to pop a message to AWS
-	
+var tpopFunc = function() {
+	//Try to send first item in queue to AWS IoT
+	if (tpopCommit == null) {
+		messageQueue.tpop(function(err,message,commit,rollback) {
+			tpopCommit = commit;
+			tpopRollback = rollback;
+		  	thingShadows.update(thingName,thingShadows);
+		});
+	}
 }
 
 exports.run = function(config) {
-  runConfig = config;
+  	runConfig = config;
 
 	emmiter = newPatterEmitter();
 
 	awsThingShadow = newThingShadow(runConfig.IoTConfig, runConfig.shadow.state);
 
-  var GPSSource = listenForGPS(runConfig.GPSudpPort, emitter);
+  	var GPSSource = listenForGPS(runConfig.GPSudpPort, emitter);
 }
 
 
@@ -54,21 +72,21 @@ var listenForGPS = function(udpPort, patternEmitter) {}
 	patternEmitter.on("GPS\.message/", function(message) {
 	 	var msgString = message.message;
 		if (msgString.indexOf("$GPRMC") > -1) {
-	  	var sentence = nmea.parse(msgString);
-	    sentence.lat = sentence.lat / 100;  //TODO Convert from DM.m to decimal, instead of devide by 100, grab first two or three for left side of decimal and then remaining device by 60 for right side of decimal
-	    sentence.lon = sentence.lon / 100 * -1;
-	    patternEmitter.emit("GPS.GPRMC",sentence);
-	  }
-	  if (msgString.indexOf("$GPGSV") > -1) {
-	  	var sentence = nmea.parse(msgString);
-	    patternEmitter.emit("GPS.GPGSV",sentence);
-	  }
-	  if (msgString.indexOf("$GPGGA") > -1) {
-	  	var sentence = nmea.parse(msgString);
-	    sentence.lat = sentence.lat / 100;
-	    sentence.lon = sentence.lon / 100 * -1;
-	    patternEmitter.emit("GPS.GPGGA",sentence);
-	  }
+	  		var sentence = nmea.parse(msgString);
+		    sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
+		    sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
+		    patternEmitter.emit("GPS.GPRMC",sentence);
+		}
+	  	if (msgString.indexOf("$GPGSV") > -1) {
+	  		var sentence = nmea.parse(msgString);
+	    	patternEmitter.emit("GPS.GPGSV",sentence);
+	  	}
+	  	if (msgString.indexOf("$GPGGA") > -1) {
+	  		var sentence = nmea.parse(msgString);
+	    	sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
+	    	sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
+	    	patternEmitter.emit("GPS.GPGGA",sentence);
+	  	}
 	});
 
 	server.bind(udpPort);
@@ -76,7 +94,7 @@ var listenForGPS = function(udpPort, patternEmitter) {}
 	return server;
 }
 
-var newPatterEmitter = function() {
+var newPatternEmitter = function() {
 	//https://github.com/danielstjules/pattern-emitter/
 	//https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp
 	var Emitter = require('pattern-emitter');
@@ -105,6 +123,8 @@ var newThingShadow = functon(config, state) {
 	thingShadows.on('connect', function() {
 	// After connecting to the AWS IoT platform, register interest in the
 	// Thing Shadow.
+		thingShadows.register(thingName);
+
 	// 2 seconds after registering, update the Thing Shadow
 	// with the latest device state and save the clientToken
 	// so that we can correlate it with status or timeout events.
@@ -115,28 +135,35 @@ var newThingShadow = functon(config, state) {
 	// method for more details.
 	//
 	    setTimeout( function() {
-	       clientTokenUpdate = thingShadows.update(thingName, state  );
+	       clientTokenUpdate = thingShadows.update(thingName, state);
 	       }, 2000 );
-	    });
-
-	thingShadows.on('status',
-    function(thingName, stat, clientToken, stateObject) {
-       console.log('received '+stat+' on '+thingName+': '+
-                   JSON.stringify(stateObject));
-      //When status (stat) = "accepted" commit queue pop
     });
 
-	thingShadows.on('delta',
-    function(thingName, stateObject) {
-       console.log('received delta '+' on '+thingName+': '+
-                   JSON.stringify(stateObject));
+	//Emmitted when an operation update|get|delete completes.
+	thingShadows.on('status', function(thingName, stat, clientToken, stateObject) {
+       	console.log('received '+stat+' on '+thingName+': '+ JSON.stringify(stateObject));
+       	//call commit if works
+       	tpopCommit(function(err) { if (err) throw err; });
+       	//clear tpopCommit and tpopRollback
+      	tpopCommit = null;
+      	tpopRollback = null;
+       	//Recurse until messageQueue is empty
+       	tpopFunc();
     });
 
-	thingShadows.on('timeout',
-    function(thingName, clientToken) {
-       console.log('received timeout '+' on '+operation+': '+
-                   clientToken);
-      //Commit queue pop here
+	//Emmitted when a delta has been received for a registered ThingShadow.
+	thingShadows.on('delta', function(thingName, stateObject) {
+       console.log('received delta '+' on '+thingName+': '+ JSON.stringify(stateObject));
+    });
+
+	//Emmitted when an operation update|get|delete has timed out.
+	thingShadows.on('timeout', function(thingName, clientToken) {
+       console.log('received timeout '+' on '+operation+': '+ clientToken);
+      //Call rollback
+      tpopRollback(function(err) { if (err) throw err; });
+      //Clear tpopCommit and tpopRollback
+      tpopCommit = null;
+      tpopRollback = null;
     });
 
 	return thingShadows;
