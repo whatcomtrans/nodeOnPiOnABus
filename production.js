@@ -6,17 +6,6 @@ var messageQueue;
 var tpopCommit = null;
 var tpopRollback = null;
 
-//What is the point of this GPRMC listener outside of the listenForGPS function? Why not put it inside that function?
-emitter.on("GPS\.GPRMC/", function(message) {
-  //TODO Update local state runConfig
-  //Set the lat/long value and update timestamp on myconfig
-  runConfig.shadow.state.desired.lat = sentence.lat;
-  runConfig.shadow.state.desired.lon = sentence.lon;
-  runConfig.shadow.state.desired.updated = Math.floor(new Date() / 1000);
-
-  updateState();
-}
-
 var updateState = function () {
 	//Add status to end of queue
   	messageQueue.push(runConfig.shadow.state, function(err){
@@ -48,6 +37,15 @@ exports.run = function(config) {
   	var GPSSource = listenForGPS(runConfig.GPSudpPort, emitter);
 }
 
+//Do we want one for GPGGA also since that sentence will include lat/long?
+emitter.on("GPS\.GPRMC/", function(sentence) 
+  //Set the lat/long value and update timestamp on myconfig
+  runConfig.shadow.state.desired.lat = sentence.lat;
+  runConfig.shadow.state.desired.lon = sentence.lon;
+  runConfig.shadow.state.desired.updated = Math.floor(new Date() / 1000);
+
+  updateState();
+}
 
 var listenForGPS = function(udpPort, patternEmitter) {}
 	//Monitor GPS data from UDP
