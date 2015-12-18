@@ -37,17 +37,7 @@ exports.run = function(config) {
   	var GPSSource = listenForGPS(runConfig.GPSudpPort, emitter);
 }
 
-//Do we want one for GPGGA also since that sentence will include lat/long?
-emitter.on("GPS\.GPRMC/", function(sentence) 
-  //Set the lat/long value and update timestamp on myconfig
-  runConfig.shadow.state.desired.lat = sentence.lat;
-  runConfig.shadow.state.desired.lon = sentence.lon;
-  runConfig.shadow.state.desired.updated = Math.floor(new Date() / 1000);
-
-  updateState();
-}
-
-var listenForGPS = function(udpPort, patternEmitter) {}
+var listenForGPS = function(udpPort, patternEmitter) {
 	//Monitor GPS data from UDP
 	var nmea = require("nmea");
 	var dgram = require("dgram");
@@ -74,6 +64,11 @@ var listenForGPS = function(udpPort, patternEmitter) {}
 		    sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
 		    sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
 		    patternEmitter.emit("GPS.GPRMC",sentence);
+		    //Set the lat/long value and update timestamp on myconfig
+		    runConfig.shadow.state.desired.lat = sentence.lat;
+			runConfig.shadow.state.desired.lon = sentence.lon;
+			runConfig.shadow.state.desired.updated = Math.floor(new Date() / 1000);
+			updateState();
 		}
 	  	if (msgString.indexOf("$GPGSV") > -1) {
 	  		var sentence = nmea.parse(msgString);
@@ -111,7 +106,7 @@ var newPatternEmitter = function() {
 	return patternEmitter;
 }
 
-var newThingShadow = functon(config, state) {
+var newThingShadow = function(config, state) {
 	var thingName = config.thingName;
 	var awsIot = require('aws-iot-device-sdk');
 	//TODO Need to move client certificates into the config file

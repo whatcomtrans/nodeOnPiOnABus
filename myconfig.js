@@ -8,8 +8,8 @@ exports.myconfig = {
 	  "caCert": "./root-CA.crt",
 	  "clientCert": "./b853ff8dd6-certificate.pem.crt",
 	  "privateKey": "./b853ff8dd6-private.pem.key"
-  }
-  "myIP": null,
+  },
+  "myIP": "127.0.0.1",
   "GPSudpPort": 5067,
   "shadow": {
     "state": {
