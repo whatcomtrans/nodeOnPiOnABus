@@ -13,9 +13,9 @@ exports.myconfig = {
   "GPSudpPort": 5067,
   "shadow": {
     "state": {
-      "desired": {
+      "reported": {
         "VehicleNumber": "900",
-        "lattitude": null,
+        "latitude": null,
         "longitude": null,
         "updated": null
       }

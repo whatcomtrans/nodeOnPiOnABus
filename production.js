@@ -8,9 +8,9 @@ var tpopRollback = null;
 
 var updateState = function () {
 	//Add status to end of queue
-  	messageQueue.push(runConfig.shadow.state, function(err){
+  	messageQueue.push(runConfig.shadow, function(err){
     	//Attempt to send directly to AWS then exit
-    	thingShadows.update(thingName,shadow);
+    	thingShadows.update(runConfig.IoTConfig.thingName,runConfig.shadow);
     	process.exit(0);
   	});
   	tpopFunc();
@@ -22,19 +22,19 @@ var tpopFunc = function() {
 		messageQueue.tpop(function(err,message,commit,rollback) {
 			tpopCommit = commit;
 			tpopRollback = rollback;
-		  	thingShadows.update(thingName,thingShadows);
+		  	thingShadows.update(runConfig.IoTConfig.thingName,thingName,runConfig.shadow);
 		});
 	}
 }
 
 exports.run = function(config) {
-  	runConfig = config;
+  runConfig = config;
 
-	emmiter = newPatterEmitter();
+	emitter = newPatternEmitter();
 
-	awsThingShadow = newThingShadow(runConfig.IoTConfig, runConfig.shadow.state);
+	awsThingShadow = newThingShadow(runConfig.IoTConfig, runConfig.shadow);
 
-  	var GPSSource = listenForGPS(runConfig.GPSudpPort, emitter);
+  var GPSSource = listenForGPS(runConfig.GPSudpPort, emitter);
 }
 
 var listenForGPS = function(udpPort, patternEmitter) {
@@ -53,22 +53,28 @@ var listenForGPS = function(udpPort, patternEmitter) {
 	});
 
 	server.on("message", function (msg, rinfo) {
-	  patternEmitter.emit("GPS.message",{message:String(msg)})
+    var gpsString = String(msg);
+    //var message = {message:String(msg)};
+    console.log(gpsString);
+	  patternEmitter.emit("GPS.message",gpsString)
 	});
 
 	//GPS parsing and emitting
-	patternEmitter.on("GPS\.message/", function(message) {
-	 	var msgString = message.message;
+	patternEmitter.on("GPS.message", function(message) {
+    console.log(message.1);
+	 	var msgString = message.1;
+    console.log(msgString);
 		if (msgString.indexOf("$GPRMC") > -1) {
 	  		var sentence = nmea.parse(msgString);
 		    sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
 		    sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
 		    patternEmitter.emit("GPS.GPRMC",sentence);
 		    //Set the lat/long value and update timestamp on myconfig
-		    runConfig.shadow.state.desired.lat = sentence.lat;
-			runConfig.shadow.state.desired.lon = sentence.lon;
-			runConfig.shadow.state.desired.updated = Math.floor(new Date() / 1000);
-			updateState();
+		    runConfig.shadow.state.reported.latitude = sentence.lat;
+  			runConfig.shadow.state.reported.longitude = sentence.lon;
+  			//runConfig.shadow.state.reported.updated = Math.floor(new Date() / 1000);
+        console.log(JSON.stringify(runConfig));
+  			//updateState();
 		}
 	  	if (msgString.indexOf("$GPGSV") > -1) {
 	  		var sentence = nmea.parse(msgString);
@@ -98,7 +104,7 @@ var newPatternEmitter = function() {
 		//other changes to the event before we emit it?
 
 	  //publish emit
-		console.log("Publishing " + event + " with " + arguments[1]);
+		console.log("Publishing " + event + " with " + JSON.stringify(arguments[1]));
 
 		//local emit
 		this.__emit(event, arguments);
@@ -135,13 +141,15 @@ var newThingShadow = function(config, state) {
 	//Emmitted when an operation update|get|delete completes.
 	thingShadows.on('status', function(thingName, stat, clientToken, stateObject) {
        	console.log('received '+stat+' on '+thingName+': '+ JSON.stringify(stateObject));
-       	//call commit if works
-       	tpopCommit(function(err) { if (err) throw err; });
-       	//clear tpopCommit and tpopRollback
-      	tpopCommit = null;
-      	tpopRollback = null;
-       	//Recurse until messageQueue is empty
-       	tpopFunc();
+        if (tpopCommit != null) {
+          //call commit if works
+          tpopCommit(function(err) { if (err) throw err; });
+          //clear tpopCommit and tpopRollback
+          tpopCommit = null;
+          tpopRollback = null;
+          //Recurse until messageQueue is empty
+          tpopFunc();
+        }
     });
 
 	//Emmitted when a delta has been received for a registered ThingShadow.
@@ -152,11 +160,13 @@ var newThingShadow = function(config, state) {
 	//Emmitted when an operation update|get|delete has timed out.
 	thingShadows.on('timeout', function(thingName, clientToken) {
        console.log('received timeout '+' on '+operation+': '+ clientToken);
-      //Call rollback
-      tpopRollback(function(err) { if (err) throw err; });
-      //Clear tpopCommit and tpopRollback
-      tpopCommit = null;
-      tpopRollback = null;
+       if (tpopCommit != null) {
+         //Call rollback
+         tpopRollback(function(err) { if (err) throw err; });
+         //Clear tpopCommit and tpopRollback
+         tpopCommit = null;
+         tpopRollback = null;
+       }
     });
 
 	return thingShadows;

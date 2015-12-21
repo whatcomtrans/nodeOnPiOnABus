@@ -6,8 +6,8 @@
 	our web server based on source IP address, if it can, and saves it locally.
 */
 
-var myconfig = require("./myconfig.js");
-
+var myconfig = require("./myconfig.js").myconfig;
+console.log(myconfig.executable);
 var executable = require(myconfig.executable);
 
 executable.run(myconfig);
