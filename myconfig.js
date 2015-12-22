@@ -1,5 +1,6 @@
 exports.myconfig = {
   "executable": "./production.js",
+  "queuePath": "./queue",
   "IoTConfig": {
     "host": "A6R7AFY5KV5WL.iot.us-west-2.amazonaws.com",
     "port": 8883,
@@ -14,10 +15,7 @@ exports.myconfig = {
   "shadow": {
     "state": {
       "reported": {
-        "VehicleNumber": "900",
-        "latitude": null,
-        "longitude": null,
-        "updated": null
+        "VehicleNumber": "900"
       }
     }
   }
