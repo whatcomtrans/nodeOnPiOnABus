@@ -9,9 +9,11 @@ var tpopRollback = null;
 var updateState = function () {
 	//Add status to end of queue
   	messageQueue.push(runConfig.shadow, function(err){
-    	//Attempt to send directly to AWS then exit
-    	thingShadows.update(runConfig.IoTConfig.thingName,runConfig.shadow);
-    	process.exit(0);
+      if (err != undefined) {
+      	//Attempt to send directly to AWS then exit
+      	awsThingShadow.update(runConfig.IoTConfig.thingName,runConfig.shadow);
+      	process.exit(0);
+      }
   	});
   	tpopFunc();
 }
@@ -22,7 +24,7 @@ var tpopFunc = function() {
 		messageQueue.tpop(function(err,message,commit,rollback) {
 			tpopCommit = commit;
 			tpopRollback = rollback;
-		  	thingShadows.update(runConfig.IoTConfig.thingName,thingName,runConfig.shadow);
+		  	awsThingShadow.update(runConfig.IoTConfig.thingName,runConfig.shadow);
 		});
 	}
 }
@@ -31,6 +33,8 @@ exports.run = function(config) {
   runConfig = config;
 
 	emitter = newPatternEmitter();
+
+  messageQueue = newQueue();
 
 	awsThingShadow = newThingShadow(runConfig.IoTConfig, runConfig.shadow);
 
@@ -53,17 +57,16 @@ var listenForGPS = function(udpPort, patternEmitter) {
 	});
 
 	server.on("message", function (msg, rinfo) {
-    var gpsString = String(msg);
-    //var message = {message:String(msg)};
-    console.log(gpsString);
-	  patternEmitter.emit("GPS.message",gpsString)
+    var gpsMessage = new Object();
+    gpsMessage.message = String(msg);
+	  patternEmitter.emit("GPS.message", gpsMessage);
 	});
 
 	//GPS parsing and emitting
 	patternEmitter.on("GPS.message", function(message) {
-    console.log(message.1);
-	 	var msgString = message.1;
-    console.log(msgString);
+    //console.log(JSON.stringify(message));
+	 	var msgString = message.message;
+    //console.log("The msgString is: " + msgString);
 		if (msgString.indexOf("$GPRMC") > -1) {
 	  		var sentence = nmea.parse(msgString);
 		    sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
@@ -72,9 +75,9 @@ var listenForGPS = function(udpPort, patternEmitter) {
 		    //Set the lat/long value and update timestamp on myconfig
 		    runConfig.shadow.state.reported.latitude = sentence.lat;
   			runConfig.shadow.state.reported.longitude = sentence.lon;
-  			//runConfig.shadow.state.reported.updated = Math.floor(new Date() / 1000);
-        console.log(JSON.stringify(runConfig));
-  			//updateState();
+  			runConfig.shadow.state.reported.updated = Math.floor(new Date() / 1000);
+        //console.log(JSON.stringify(runConfig));
+  			updateState();
 		}
 	  	if (msgString.indexOf("$GPGSV") > -1) {
 	  		var sentence = nmea.parse(msgString);
@@ -100,7 +103,7 @@ var newPatternEmitter = function() {
 	var patternEmitter = new Emitter();
 	patternEmitter.__emit = patternEmitter.emit;
 
-	patternEmitter.emit = function(event) {
+	/*patternEmitter.emit = function(event) {
 		//other changes to the event before we emit it?
 
 	  //publish emit
@@ -108,7 +111,7 @@ var newPatternEmitter = function() {
 
 		//local emit
 		this.__emit(event, arguments);
-	}
+	}*/
 	return patternEmitter;
 }
 
@@ -175,5 +178,6 @@ var newThingShadow = function(config, state) {
 var newQueue = function(thingShadow) {
 	// https://www.npmjs.com/package/file-queue
 	var Queue = require('file-queue').Queue,
-    	queue = new Queue('./queue', function(err){console.log("error setting up queue: " + err);});
+      queue = new Queue('./queue', function(err){if (err != undefined) {console.log("error setting up queue: " + err);}});
+  return queue;
 }
