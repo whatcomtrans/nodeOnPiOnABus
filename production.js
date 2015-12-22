@@ -36,7 +36,7 @@ var tpopFunc = function() {
 exports.run = function(config) {
   //runConfig = config;
 
-	emitter = newPatternEmitter();
+	var emitter = newPatternEmitter();
 
   /*
   messageQueue = newQueue();
@@ -134,6 +134,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
   //TODO Handle re-registering after long disconnected states
 	var thisShadow = awsIot.thingShadow(AWSShadowConfig);
   thisShadow.thingName = AWSShadowConfig.thingName;
+  console.log(thisShadow.thingName);
 	thisShadow.lastClientTokenUpdate = null;
   thisShadow.stateCurrent = initialState.state.reported;
 
@@ -147,57 +148,62 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 
   thisShadow._sendQueue = function() {
   	//Try to send first item in queue to AWS IoT, but only if nothing pending and status is ready is true
+    var myThis = this;
     console.log("In _sendQueue");
-  	if (this._tpopCommit == null && this.ready) {
+  	if (myThis._tpopCommit == null && myThis.ready) {
       console.log("About to tpop");
-  		this._queue.tpop(function(err,message,commit,rollback) {
+  		myThis._queue.tpop(function(err,message,commit,rollback) {
         if (err == undefined) {
           console.log("Have message " + JSON.stringify(message));
-    			this._tpopCommit = commit;
-    			this._tpopRollback = rollback;
+    			myThis._tpopCommit = commit;
+    			myThis._tpopRollback = rollback;
           if (message.type == "update") {
-            console.log("Attempting AWS update with " + JSON.stringify(message.content));
-            this._update(this.thingName, message.content);
-          } elseif (message.type == "publish")
-    		  this._publish(this.thingName,this.content);
+            //console.log(myThis);
+            console.log("Attempting AWS update " + myThis.thingName + " with " + JSON.stringify(message.content));
+            myThis.lastClientTokenUpdate = myThis._update(myThis.thingName, message.content);
+          }else if (message.type == "publish") {
+    		    myThis._publish(myThis.thingName,myThis.content);
+          }
         } else {
           console.log("error in tpop " + err)
           //Process bad messages TODO
-          this._tpopCommit = commit;
+          myThis._tpopCommit = commit;
         }
   		});
   	}
-  }
+  };
 
   thisShadow.update = function(stateObject) {
+    var myThis = this;
     if (stateObject != undefined) {
-      this.stateCurrent = stateObject.state.reported;
+      myThis.stateCurrent = stateObject.state.reported;
     }
     //build clean state document
     var stateDocument = new Object();
     stateDocument.state = new Object();
-    stateDocument.state.reported = this.stateCurrent;
+    stateDocument.state.reported = myThis.stateCurrent;
     //Build message to include type and content
     var message = new Object();
     message.type = "update";
     message.content = stateDocument;
     console.log("Pushing " + JSON.stringify(message) + " to queue...");
-    this._queue.push(message);  //TODO add error handling
+    myThis._queue.push(message);  //TODO add error handling
     //Attempt to send now
-    this._sendQueue();
-  }
+    myThis._sendQueue();
+  };
 
   //TODO build new publish function
 
   thisShadow.setStateReportedValue = function(name, value, updateNow) {
-    console.log(JSON.stringify(this.stateCurrent));
+    var myThis = this;
+    console.log(JSON.stringify(myThis.stateCurrent));
     console.log("set " + name + " to " + value);
-    this.stateCurrent[name] = value;
+    myThis.stateCurrent[name] = value;
     if (updateNow) {
-      this.stateCurrent.updated = Math.floor(new Date() / 1000);
-      this.update();
+      myThis.stateCurrent.updated = Math.floor(new Date() / 1000);
+      myThis.update();
     }
-  }
+  };
 
   thisShadow.on('connect', function() {
 		thisShadow.register(thisShadow.thingName);
