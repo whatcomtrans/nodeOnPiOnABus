@@ -1,4 +1,4 @@
-exports.run = function(config) {
+module.exports.run = function(config) {
 	var emitter = newPatternEmitter();
 	var GPSSource = listenForGPS(config.GPSudpPort, emitter);
 	var myThingShadow = createThingShadow(config.IoTConfig, config.shadow, config.queuePath);
@@ -70,7 +70,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	thisShadow.stateCurrent = initialState.state.reported;
 	//These functions will be overridden to support the queue
 	thisShadow._update = thisShadow.update;
-	thisShadow._pulish = thisShadow.publish;
+	thisShadow._publish = thisShadow.publish;
 	//Setup queue
 	//TODO add support for multiple things by using seperate paths
 	thisShadow._queue = new Queue(queuePath, function(err){if (err != undefined) {console.log("error setting up queue: " + err);}});
@@ -78,14 +78,14 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 		//Try to send first item in queue to AWS IoT, but only if nothing pending and status is ready is true
 		var myThis = this;
 		console.log("In _sendQueue");
-		if (myThis._tpopCommit == null && myThis.ready) {
+		if ((myThis._tpopCommit == null) && (myThis.ready == true)) {
 			console.log("About to tpop");
 			myThis._queue.tpop(function(err,message,commit,rollback) {
 				if (err == undefined) {
 					console.log("Have message " + JSON.stringify(message));
 					myThis._tpopCommit = commit;
 					myThis._tpopRollback = rollback;
-					if (message.type == "update") {
+					if (message.type == "update") { // && connected == true? When not connected, there is no error handling and the application crashes
 						console.log("Attempting AWS update " + myThis.thingName + " with " + JSON.stringify(message.content));
 						myThis.lastClientTokenUpdate = myThis._update(myThis.thingName, message.content);
 					} else if (message.type == "publish") {
@@ -97,6 +97,8 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 					myThis._tpopCommit = commit;
 				}
 	  		});
+		} else {
+
 		}
 	};
 	thisShadow.update = function(stateObject) {
@@ -130,6 +132,8 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	    }
 	};
 	thisShadow.on('connect', function() {
+		console.log("Connected");
+		thisShadow.unregister(thisShadow.thingName);
 		thisShadow.register(thisShadow.thingName);
 		thisShadow.ready = false;
 		setTimeout( function() {
@@ -138,21 +142,42 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 			thisShadow.update();
 		}, 2000 );
 	});
+	thisShadow.on('offline', function() {
+		console.log('offline');
+		thisShadow.ready = false;
+	});
+	thisShadow.on('reconnect', function() {
+		console.log('Trying to reconnect...');
+		//Immediately fails right here every time.
+		thisShadow.ready = false;
+	});
 	thisShadow.on('status', function(thingName, stat, clientToken, stateObject) {
 		console.log('received '+stat+' on '+thingName+': '+ JSON.stringify(stateObject));
-		thisShadow.ready = true;
 		thisShadow.lastStatus = stat;
-		//TODO only update the following based on certain stat values
-		thisShadow.stateReported = stateObject.state.reported;
-		thisShadow.stateDesired = stateObject.state.desired;
-		if (thisShadow._tpopCommit != null) {
-			//call commit if works
-			thisShadow._tpopCommit(function(err) { if (err) throw err; });
-			//clear tpopCommit and tpopRollback
-			thisShadow._tpopCommit = null;
-			thisShadow._tpopRollback = null;
-			//Recurse until messageQueue is empty
-			thisShadow._sendQueue();
+		if (stat == 'rejected') {
+			//do we need to pop the message from queue or has it already been popped?
+			if (thisShadow._tpopCommit != null) {
+				//call commit if works
+				thisShadow._tpopCommit(function(err) { if (err) throw err; });
+				//clear tpopCommit and tpopRollback
+				thisShadow._tpopCommit = null;
+				thisShadow._tpopRollback = null;
+				//Recurse until messageQueue is empty
+				thisShadow._sendQueue();
+			}
+		} else {
+			thisShadow.ready = true;
+			thisShadow.stateReported = stateObject.state.reported;
+			thisShadow.stateDesired = stateObject.state.desired;
+			if (thisShadow._tpopCommit != null) {
+				//call commit if works
+				thisShadow._tpopCommit(function(err) { if (err) throw err; });
+				//clear tpopCommit and tpopRollback
+				thisShadow._tpopCommit = null;
+				thisShadow._tpopRollback = null;
+				//Recurse until messageQueue is empty
+				thisShadow._sendQueue();
+			}
 		}
 	});
 	//Emmitted when a delta has been received for a registered ThingShadow.
@@ -162,6 +187,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	//Emmitted when an operation update|get|delete has timed out.
 	thisShadow.on('timeout', function(thingName, clientToken) {
 	//TODO should we set ready to false here?
+		// thisShadow.ready = false;
 		console.log('received timeout on: '+ clientToken);
 		if (thisShadow._tpopCommit != null) {
 			//Call rollback
@@ -170,6 +196,10 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 			thisShadow._tpopCommit = null;
 			thisShadow._tpopRollback = null;
 		}
+	});
+	thisShadow.on('error', function() {
+		console.log('error');
+		thisShadow.ready = false;
 	});
 	return thisShadow;
 }
