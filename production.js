@@ -86,7 +86,6 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 					myThis._tpopCommit = commit;
 					myThis._tpopRollback = rollback;
 					if (message.type == "update") {
-						//console.log(myThis);
 						console.log("Attempting AWS update " + myThis.thingName + " with " + JSON.stringify(message.content));
 						myThis.lastClientTokenUpdate = myThis._update(myThis.thingName, message.content);
 					} else if (message.type == "publish") {
@@ -114,7 +113,8 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 		message.type = "update";
 		message.content = stateDocument;
 		console.log("Pushing " + JSON.stringify(message) + " to queue...");
-		myThis._queue.push(message);  //TODO add error handling
+		myThis._queue.push(message);  
+		//TODO add error handling
 		//Attempt to send now
 		myThis._sendQueue();
 	};
@@ -157,12 +157,12 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	});
 	//Emmitted when a delta has been received for a registered ThingShadow.
 	thisShadow.on('delta', function(thingName, stateObject) {
-		console.log('received delta '+' on '+thingName+': '+ JSON.stringify(stateObject));
+		console.log('received delta on '+thingName+': '+ JSON.stringify(stateObject));
 	});
 	//Emmitted when an operation update|get|delete has timed out.
 	thisShadow.on('timeout', function(thingName, clientToken) {
 	//TODO should we set ready to false here?
-		console.log('received timeout '+' on '+operation+': '+ clientToken);
+		console.log('received timeout on: '+ clientToken);
 		if (thisShadow._tpopCommit != null) {
 			//Call rollback
 			thisShadow._tpopRollback(function(err) { if (err) throw err; });
