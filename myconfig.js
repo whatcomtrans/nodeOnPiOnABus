@@ -11,7 +11,7 @@ module.exports.myconfig = {
 	  "clientCert": "./b853ff8dd6-certificate.pem.crt",
 	  "privateKey": "./b853ff8dd6-private.pem.key"
   },
-  "myIP": "127.0.0.1",
+  "myIP": "192.168.1.15",
   "GPSudpPort": 5067,
   "shadow": {
     "state": {
