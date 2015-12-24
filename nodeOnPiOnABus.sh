@@ -19,7 +19,7 @@ case "$1" in
     echo "Starting index.js"
     # run application you want to start
     #node /home/pi/nodeOnPiOnABus/index.js > /home/pi/nodeOnPiOnABus/index.log
-    /usr/local/node /home/pi/nodeOnPiOnABus/index.js >> /home/pi/nodeOnPiOnABus/index.log
+    /usr/bin/node /home/pi/nodeOnPiOnABus/index.js >> /home/pi/nodeOnPiOnABus/index.log
    ;;
    stop)
     echo "Stopping index.js"
