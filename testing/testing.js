@@ -19,7 +19,7 @@ setInterval(broadcastNew, 3000);
 
 function broadcastNew() {
     var message = new Buffer(gpsStrings[Math.floor(Math.random()*gpsStrings.length)]);
-    server.send(message, 0, message.length, 5067, "127.0.0.1");
+    server.send(message, 0, message.length, 5067, "192.168.1.15");
     console.log("Sent " + message + " to the wire...");
     //server.close();
 }
