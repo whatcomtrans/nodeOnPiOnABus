@@ -7,9 +7,9 @@ module.exports.myconfig = {
     "reconnectPeriod":10000,
 	  "clientId": "vehicle900",
 	  "thingName": "vehicle900",
-	  "caCert": "./root-CA.crt",
-	  "clientCert": "./b853ff8dd6-certificate.pem.crt",
-	  "privateKey": "./b853ff8dd6-private.pem.key"
+	  "caCert": "/home/pi/nodeOnPiOnABus/root-CA.crt",
+	  "clientCert": "/home/pi/nodeOnPiOnABus/b853ff8dd6-certificate.pem.crt",
+	  "privateKey": "/home/pi/nodeOnPiOnABus/b853ff8dd6-private.pem.key"
   },
   "myIP": "192.168.1.15",
   "GPSudpPort": 5067,
