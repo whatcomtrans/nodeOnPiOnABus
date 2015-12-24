@@ -80,6 +80,8 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 		console.log("In _sendQueue");
 		if ((myThis._tpopCommit == null) && (myThis.ready == true)) {
 			console.log("About to tpop");
+			console.log(myThis);
+			console.log(myThis._queue);
 			myThis._queue.tpop(function(err,message,commit,rollback) {
 				if (err == undefined) {
 					console.log("Have message " + JSON.stringify(message));
