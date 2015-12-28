@@ -33,7 +33,8 @@ var runITDelay = 2 * 60 * 100;
 var configURL = "http://localhost:8080/node-work2.ps1";
 
 //Set working directory
-var scriptPath = process.argv[1].replace("index.js", "");
+var path = "/home/pi/nodeOnPiOnABus/index.js";
+var scriptPath = path.replace("index.js", "");
 console.log('Script directory: ' + scriptPath + ' Starting directory: ' + process.cwd());
 
 try {
