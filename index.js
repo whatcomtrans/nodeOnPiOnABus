@@ -1,7 +1,7 @@
 //index.js
 // WTA piOnABusWithNode
 
-var myconfig = require("./myconfig.js");
+var myconfig = require("myconfig.js");
 
 var executable = require(myconfig.executable);
 
