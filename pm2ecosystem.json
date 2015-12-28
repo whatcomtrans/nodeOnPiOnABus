@@ -3,7 +3,6 @@
     // NodeonPiOnABus
     "name"        : "nodeOnPiOnABus",
     "script"      : "/home/pi/nodeOnPiOnABus/index.js",
-    "args"        : ["myconfig.js"],
     "watch"       : false,
     "cwd"         : "/home/pi/nodeOnPiOnABus"
   }]
