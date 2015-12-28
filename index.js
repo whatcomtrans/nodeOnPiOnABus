@@ -25,8 +25,8 @@ var getConfig = function(url, saveToPath) {
 };
 
 //Defaults
-var fallbackConfigPath = "./myconfig.js";
-var saveConfigToPath = "./remote-config.js";
+var fallbackConfigPath = "myconfig.js";
+var saveConfigToPath = "remote-config.js";
 var runWithConfigPath = saveConfigToPath;
 var updateConfigDelay = 60 * 100;
 var runITDelay = 2 * 60 * 100;
