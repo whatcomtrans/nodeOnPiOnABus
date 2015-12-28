@@ -1,7 +1,11 @@
 module.exports.run = function(config) {
 	var emitter = newPatternEmitter();
 	var GPSSource = listenForGPS(config.GPSudpPort, emitter);
+
+	config.IoTConfig.clientCert = new Buffer(config.clientCertString);
+	config.IoTConfig.privateKey = new Buffer(config.privateKeyString);
 	var myThingShadow = createThingShadow(config.IoTConfig, config.shadow, config.queuePath);
+
 	emitter.on("GPS.GPRMC", function(eventObject) {
 		myThingShadow.setStateReportedValue("latitude", eventObject.lat, false);
 		myThingShadow.setStateReportedValue("longitude", eventObject.lon, true);
@@ -117,7 +121,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 		message.type = "update";
 		message.content = stateDocument;
 		console.log("Pushing " + JSON.stringify(message) + " to queue...");
-		myThis._queue.push(message);  
+		myThis._queue.push(message);
 		//TODO add error handling
 		//Attempt to send now
 		myThis._sendQueue();
