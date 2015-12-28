@@ -88,8 +88,6 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 		console.log("In _sendQueue");
 		if ((myThis._tpopCommit == null) && (myThis.ready == true)) {
 			console.log("About to tpop");
-			console.log(myThis);
-			console.log(myThis._queue);
 			myThis._queue.tpop(function(err,message,commit,rollback) {
 				if (err == undefined) {
 					console.log("Have message " + JSON.stringify(message));
@@ -133,7 +131,6 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	//TODO build new publish function
 	thisShadow.setStateReportedValue = function(name, value, updateNow) {
 		var myThis = this;
-		console.log(JSON.stringify(myThis.stateCurrent));
 		console.log("set " + name + " to " + value);
 		myThis.stateCurrent[name] = value;
 		if (updateNow) {

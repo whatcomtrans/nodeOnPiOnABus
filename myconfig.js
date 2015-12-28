@@ -7,7 +7,7 @@ module.exports.myconfig = {
     "reconnectPeriod":10000,
 	  "clientId": "vehicle900",
 	  "thingName": "vehicle900",
-	  "caCert": "./root-CA.crt",
+	  "caCert": "root-CA.crt",
 	  "clientCert": "./b853ff8dd6-certificate.pem.crt",
 	  "privateKey": "./b853ff8dd6-private.pem.key"
   },
