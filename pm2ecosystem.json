@@ -2,7 +2,7 @@
   "apps" : [{
     // NodeonPiOnABus
     "name"        : "nodeOnPiOnABus",
-    "script"      : "index.js",
+    "script"      : "/home/pi/nodeOnPiOnABus/index.js",
     "args"        : ["./myconfig.js"],
     "watch"       : false,
     "cwd"         : "/home/pi/nodeOnPiOnABus"
