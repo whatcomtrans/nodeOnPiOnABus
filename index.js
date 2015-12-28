@@ -36,7 +36,7 @@ executable.run();
 // var runWithConfigPath = saveConfigToPath;
 // var updateConfigDelay = 60 * 100;
 // var runITDelay = 2 * 60 * 100;
-// var configURL = "http://localhost:8080/node-work2.ps1";
+// var configURL = "http://piconfig.fleetnet.whatcomtrans.net/config";
 
 // //Set working directory
 // var scriptPath = process.argv[1].replace("index.js", "");
