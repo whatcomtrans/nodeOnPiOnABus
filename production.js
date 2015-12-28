@@ -2,8 +2,12 @@ module.exports.run = function(config) {
 	var emitter = newPatternEmitter();
 	var GPSSource = listenForGPS(config.GPSudpPort, emitter);
 
-	config.IoTConfig.clientCert = new Buffer(config.clientCertString);
-	config.IoTConfig.privateKey = new Buffer(config.privateKeyString);
+	if (config.clientCertString != undefined) {
+		config.IoTConfig.clientCert = new Buffer(config.clientCertString);
+	}
+	if (config.privateKeyString != undefined) {
+		config.IoTConfig.privateKey = new Buffer(config.privateKeyString);
+	}
 	var myThingShadow = createThingShadow(config.IoTConfig, config.shadow, config.queuePath);
 
 	emitter.on("GPS.GPRMC", function(eventObject) {
