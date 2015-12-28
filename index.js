@@ -37,7 +37,7 @@ var scriptPath = process.argv[1].replace("index.js", "");
 console.log('Script directory: ' + scriptPath + ' Starting directory: ' + process.cwd());
 
 try {
-  process.chdir(scriptPath);
+  process.chdir(process.cwd());
   console.log('New directory: ' + process.cwd());
 }
 catch (err) {
