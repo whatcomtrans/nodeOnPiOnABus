@@ -1,5 +1,5 @@
 module.exports.myconfig = {
-  "executable": "/home/pi/nodeOnPiOnABus/production.js",
+  "executable": "./production.js",
   "queuePath": "../queue",
   "IoTConfig": {
     "host": "A6R7AFY5KV5WL.iot.us-west-2.amazonaws.com",
