@@ -1,42 +1,42 @@
 //index.js
 // WTA piOnABusWithNode
 
-var myconfig = require("./myconfig.js").myconfig;
-console.log(process.cwd());
-var executable = require(myconfig.executable);
+// var myconfig = require("./myconfig.js").myconfig;
+// console.log(process.cwd());
+// var executable = require(myconfig.executable);
 
-executable.run(myconfig);
+// executable.run(myconfig);
 
-// var fs = require("fs");
+var fs = require("fs");
 
-// var runIT = function(configPath, alternateConfigPath) {
-// 	console.log(configPath + ", " + alternateConfigPath);
-// 	try {
-// 		fs.accessSync(configPath);
-// 	} catch (e) {
-// 		configPath = alternateConfigPath;
-// 	}
-// 	console.log(configPath);
-// 	var myconfig = require(configPath).myconfig;
-// 	console.log(myconfig.executable);
-// 	var executable = require(myconfig.executable);
-// 	executable.run(myconfig);
-// };
+var runIT = function(configPath, alternateConfigPath) {
+	console.log(configPath + ", " + alternateConfigPath);
+	try {
+		fs.accessSync(configPath);
+	} catch (e) {
+		configPath = alternateConfigPath;
+	}
+	console.log(configPath);
+	var myconfig = require(configPath).myconfig;
+	console.log(myconfig.executable);
+	var executable = require(myconfig.executable);
+	executable.run(myconfig);
+};
 
-// var getConfig = function(url, saveToPath) {
-// 	var request = require("request");
-// 	request(url).pipe(fs.createWriteStream(saveToPath));
-// 	//TODO add some sort of validation
-// 	console.log("Retrieved " + url + " and saved to " + saveToPath);
-// };
+var getConfig = function(url, saveToPath) {
+	var request = require("request");
+	request(url).pipe(fs.createWriteStream(saveToPath));
+	//TODO add some sort of validation
+	console.log("Retrieved " + url + " and saved to " + saveToPath);
+};
 
-// //Defaults
-// var fallbackConfigPath = "./myconfig.js";
-// var saveConfigToPath = "./remote-config.js";
-// var runWithConfigPath = saveConfigToPath;
-// var updateConfigDelay = 60 * 100;
-// var runITDelay = 2 * 60 * 100;
-// var configURL = "http://piconfig.fleetnet.whatcomtrans.net/config";
+//Defaults
+var fallbackConfigPath = "./myconfig.js";
+var saveConfigToPath = "./remote-config.js";
+var runWithConfigPath = saveConfigToPath;
+var updateConfigDelay = 60 * 100;
+var runITDelay = 2 * 60 * 100;
+var configURL = "http://piconfig.fleetnet.whatcomtrans.net/config";
 
 // //Set working directory
 // var scriptPath = process.argv[1].replace("index.js", "");
@@ -58,6 +58,6 @@ executable.run(myconfig);
 // 	console.log("Waiting " + updateConfigDelay + " milliseconds to attempt to retrieve config file from " + configURL + " and save to " + saveConfigToPath);
 // 	setTimeout(getConfig, updateConfigDelay, configURL, saveConfigToPath);
 // }
-// console.log(runWithConfigPath);
+console.log(runWithConfigPath);
 // //Get started
-// setTimeout(runIT, runITDelay, runWithConfigPath, fallbackConfigPath);
+setTimeout(runIT, runITDelay, runWithConfigPath, fallbackConfigPath);
