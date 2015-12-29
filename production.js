@@ -82,14 +82,15 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	//Setup queue
 	//TODO add support for multiple things by using seperate paths
 	thisShadow._queue = new Queue(queuePath, function(err){if (err != undefined) {console.log("error setting up queue: " + err);}});
+	thisShadow._tpopCommit = null;
+	thisShadow._tpopRollback = null;
 	thisShadow._sendQueue = function() {
 		//Try to send first item in queue to AWS IoT, but only if nothing pending and status is ready is true
 		var myThis = this;
 		console.log("In _sendQueue");
+		console.log(myThis);
 		if ((myThis._tpopCommit == null) && (myThis.ready == true)) {
 			console.log("About to tpop");
-			console.log(myThis);
-			console.log(myThis._queue);
 			myThis._queue.tpop(function(err,message,commit,rollback) {
 				if (err == undefined) {
 					console.log("Have message " + JSON.stringify(message));
@@ -108,7 +109,6 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 				}
 	  		});
 		} else {
-
 		}
 	};
 	thisShadow.update = function(stateObject) {
@@ -133,7 +133,6 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	//TODO build new publish function
 	thisShadow.setStateReportedValue = function(name, value, updateNow) {
 		var myThis = this;
-		console.log(JSON.stringify(myThis.stateCurrent));
 		console.log("set " + name + " to " + value);
 		myThis.stateCurrent[name] = value;
 		if (updateNow) {
