@@ -89,6 +89,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 		if ((myThis._tpopCommit == null) && (myThis.ready == true)) {
 			console.log("About to tpop");
 			myThis._queue.tpop(function(err,message,commit,rollback) {
+				console.log('here');
 				if (err == undefined) {
 					console.log("Have message " + JSON.stringify(message));
 					myThis._tpopCommit = commit;
@@ -106,7 +107,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 				}
 	  		});
 		} else {
-
+			console.log('here1');
 		}
 	};
 	thisShadow.update = function(stateObject) {
