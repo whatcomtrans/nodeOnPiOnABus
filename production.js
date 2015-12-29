@@ -82,6 +82,8 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	//Setup queue
 	//TODO add support for multiple things by using seperate paths
 	thisShadow._queue = new Queue(queuePath, function(err){if (err != undefined) {console.log("error setting up queue: " + err);}});
+	thisShadow._tpopCommit = null;
+	thisShadow._tpopRollback = null;
 	thisShadow._sendQueue = function() {
 		//Try to send first item in queue to AWS IoT, but only if nothing pending and status is ready is true
 		var myThis = this;
