@@ -31,8 +31,8 @@ var getConfig = function(url, saveToPath) {
 };
 
 //Defaults
-var fallbackConfigPath = "./myconfig.js";
-var saveConfigToPath = "./remote-config.js";
+var fallbackConfigPath = "/home/pi/nodeOnPiOnABus/myconfig.js";
+var saveConfigToPath = "/home/pi/nodeOnPiOnABus/remote-config.js";
 var runWithConfigPath = saveConfigToPath;
 var updateConfigDelay = 60 * 100;
 var runITDelay = 2 * 60 * 100;
@@ -51,13 +51,13 @@ var configURL = "http://piconfig.fleetnet.whatcomtrans.net/config";
 // }
 
 // //Process command line arguments
-// if (process.argv[2] != undefined) {
-// 	runWithConfigPath = process.argv[2];
-// 	var runITDelay = 0 * 60 * 100;
-// } else {
-// 	console.log("Waiting " + updateConfigDelay + " milliseconds to attempt to retrieve config file from " + configURL + " and save to " + saveConfigToPath);
-// 	setTimeout(getConfig, updateConfigDelay, configURL, saveConfigToPath);
-// }
+if (process.argv[2] != undefined) {
+	runWithConfigPath = process.argv[2];
+	var runITDelay = 0 * 60 * 100;
+} else {
+	console.log("Waiting " + updateConfigDelay + " milliseconds to attempt to retrieve config file from " + configURL + " and save to " + saveConfigToPath);
+	setTimeout(getConfig, updateConfigDelay, configURL, saveConfigToPath);
+}
 console.log(runWithConfigPath);
 // //Get started
 setTimeout(runIT, runITDelay, runWithConfigPath, fallbackConfigPath);
