@@ -11,11 +11,11 @@ var fs = require("fs");
 
 var runIT = function(configPath, alternateConfigPath) {
 	console.log(configPath + ", " + alternateConfigPath);
-	try {
+	/*try {
 		fs.accessSync(configPath);
 	} catch (e) {
 		configPath = alternateConfigPath;
-	}
+	}*/
 	console.log(configPath);
 	var myconfig = require(configPath).myconfig;
 	console.log(myconfig.executable);
