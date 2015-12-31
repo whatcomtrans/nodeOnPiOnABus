@@ -88,7 +88,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 		//Try to send first item in queue to AWS IoT, but only if nothing pending and status is ready is true
 		var myThis = this;
 		console.log("In _sendQueue");
-		console.log(myThis);
+		
 		if ((myThis._tpopCommit == null) && (myThis.ready == true)) {
 			console.log("About to tpop");
 			myThis._queue.tpop(function(err,message,commit,rollback) {
