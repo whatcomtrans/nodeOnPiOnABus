@@ -33,7 +33,7 @@ var getConfig = function(url, saveToPath) {
 };
 
 //Defaults
-var fallbackConfigPath = "/home/pi/nodeOnPiOnABus/myconfig.js";
+var fallbackConfigPath = "/home/pi/myconfig.js";
 var saveConfigToPath = "/home/pi/remote-config.js";
 var runWithConfigPath = saveConfigToPath;
 var updateConfigDelay = 6000;
