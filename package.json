@@ -1,5 +1,5 @@
 {
-  "name": "nodeOnPiOnABus",
+  "name": "nodeonpionabus",
   "version": "0.0.1",
   "description": "Node.js on a RasberyPi on a transit Bus",
   "main": "index.js",
