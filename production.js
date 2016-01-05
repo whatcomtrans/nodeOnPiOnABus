@@ -88,7 +88,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 		//Try to send first item in queue to AWS IoT, but only if nothing pending and status is ready is true
 		var myThis = this;
 		console.log("In _sendQueue");
-		
+
 		if ((myThis._tpopCommit == null) && (myThis.ready == true)) {
 			console.log("About to tpop");
 			myThis._queue.tpop(function(err,message,commit,rollback) {
@@ -109,6 +109,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 				}
 	  		});
 		} else {
+			console.log("In tpop, ready = " + myThis.ready + " and myThis._tpopCommit = " + myThis._tpopCommit);
 		}
 	};
 	thisShadow.update = function(stateObject) {
@@ -154,6 +155,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	thisShadow.on('offline', function() {
 		console.log('offline');
 		thisShadow.ready = false;
+		setTimeout(fuction(){thisShadow.ready = true;}, 2 * 60 * 1000);
 	});
 	thisShadow.on('reconnect', function() {
 		console.log('Trying to reconnect...');
