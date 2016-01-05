@@ -155,7 +155,7 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	thisShadow.on('offline', function() {
 		console.log('offline');
 		thisShadow.ready = false;
-		setTimeout(fuction(){thisShadow.ready = true;}, 2 * 60 * 1000);
+		setTimeout(function(){thisShadow.ready = true;}, 2 * 60 * 1000);
 	});
 	thisShadow.on('reconnect', function() {
 		console.log('Trying to reconnect...');
