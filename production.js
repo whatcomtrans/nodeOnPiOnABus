@@ -177,7 +177,12 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 				thisShadow._tpopCommit = null;
 				thisShadow._tpopRollback = null;
 				//Recurse until messageQueue is empty
-				thisShadow._sendQueue();
+				thisShadow._queue.length(function(err, length) {
+				  if (length>0) {
+				  	console.log(length);
+				  	thisShadow._sendQueue();
+				  }
+				});
 			}
 		} else {
 			thisShadow.ready = true;
@@ -190,7 +195,12 @@ var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 				thisShadow._tpopCommit = null;
 				thisShadow._tpopRollback = null;
 				//Recurse until messageQueue is empty
-				thisShadow._sendQueue();
+				thisShadow._queue.length(function(err, length) {
+				  if (length>0) {
+				  	console.log(length);
+				  	thisShadow._sendQueue();
+				  }
+				});
 			}
 		}
 	});
