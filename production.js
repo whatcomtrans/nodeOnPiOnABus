@@ -1,6 +1,7 @@
 module.exports.run = function(config) {
 	var emitter = newPatternEmitter();
 	var GPSSource = listenForGPS(config.GPSudpPort, emitter);
+	console.log(GPSSource);
 
 	if (config.clientCertString != undefined) {
 		config.IoTConfig.clientCert = new Buffer(config.clientCertString);
@@ -22,12 +23,14 @@ var listenForGPS = function(udpPort, patternEmitter) {
 	var nmea = require("nmea");
 	var dgram = require("dgram");
 	var server = dgram.createSocket("udp4");
+	console.log(server);
 	server.on("error", function (err) {
 		console.log("server error:\n" + err.stack);
 		server.close();
 	});
 	server.on("listening", function () {
 		//this.myIP = server.address();
+		console.log("Server is listening for udp packets...");
 	});
 	server.on("message", function (msg, rinfo) {
 		console.log("Server received message...");
