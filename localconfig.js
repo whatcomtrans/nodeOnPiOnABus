@@ -10,7 +10,7 @@ module.exports.localconfig = {
 };
 
 module.exports.myconfig = {
-  "executable": "./test.js",
+  "executable": "./production.js",
   "queuePath": "../queue",
   "IoTConfig": {
     "host": "A6R7AFY5KV5WL.iot.us-west-2.amazonaws.com",

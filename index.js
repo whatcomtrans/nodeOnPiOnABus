@@ -89,7 +89,7 @@ try {
 //Support for pointing to an alternate/updatable localconfig
 if (localconfig.useAlternateLocalConfigPath != undefined) {
 	try {
-		console.log("Attempting to load alternateLocalConfig usign path " + localconfig.useAlternateLocalConfigPath);
+		console.log("Attempting to load alternateLocalConfig using path " + localconfig.useAlternateLocalConfigPath);
 		var alternateLocalConfig = require(localconfig.useAlternateLocalConfigPath).localconfig;
 		if (alternateLocalConfig != undefined) {
 			console.log("Local config loaded as " + JSON.stringify(localconfig));
