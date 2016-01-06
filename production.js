@@ -11,6 +11,7 @@ module.exports.run = function(config) {
 	var myThingShadow = createThingShadow(config.IoTConfig, config.shadow, config.queuePath);
 
 	emitter.on("GPS.GPRMC", function(eventObject) {
+		console.log("Emitter received GPRMC message...updating...");
 		myThingShadow.setStateReportedValue("latitude", eventObject.lat, false);
 		myThingShadow.setStateReportedValue("longitude", eventObject.lon, true);
 	});
@@ -29,6 +30,7 @@ var listenForGPS = function(udpPort, patternEmitter) {
 		//this.myIP = server.address();
 	});
 	server.on("message", function (msg, rinfo) {
+		console.log("Server received message...");
 		var gpsMessage = new Object();
 		gpsMessage.message = String(msg);
 		patternEmitter.emit("GPS.message", gpsMessage);
