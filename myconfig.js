@@ -4,7 +4,7 @@ module.exports.myconfig = {
   "IoTConfig": {
     "host": "A6R7AFY5KV5WL.iot.us-west-2.amazonaws.com",
     "port": 8883,
-    "reconnectPeriod":10000,
+    "reconnectPeriod":1000,
 	  "clientId": "vehicle900",
 	  "thingName": "vehicle900",
 	  "caCert": "root-CA.crt",
