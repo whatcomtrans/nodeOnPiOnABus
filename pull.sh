@@ -10,4 +10,4 @@ git pull https://github.com/whatcomtrans/nodeOnPiOnABus
 pm2 start index.js
 pm2 save
 sudo chattr +i /home/pi/.pm2/dump.pm2
-Sudo su -c "env PATH=$PATH:/usr/local/bin PM2_HOME=/home/pi/.pm2 pm2 startup linux -u pi"
+sudo su -c "env PATH=$PATH:/usr/local/bin PM2_HOME=/home/pi/.pm2 pm2 startup linux -u pi"
