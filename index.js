@@ -1,5 +1,5 @@
 //index.js
-// WTA piOnABusWithNode
+// WTA nodeOnPiOnABus
 
 var localConfigPath = "./localconfig.js";
 var localconfig = null;
