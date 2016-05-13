@@ -15,5 +15,13 @@
   "bugs": {
     "url": "https://github.com/whatcomtrans/nodeOnPiOnABus/issues"
   },
-  "homepage": "https://github.com/whatcomtrans/nodeOnPiOnABus"
+  "homepage": "https://github.com/whatcomtrans/nodeOnPiOnABus",
+  "dependencies": {
+    "aws-iot-device-sdk": "^1.0.12",
+    "file-queue": "^0.2.1",
+    "fs-extra": "^0.30.0",
+    "nmea": "0.0.9",
+    "pattern-emitter": "^1.0.0",
+    "request": "^2.72.0"
+  }
 }
