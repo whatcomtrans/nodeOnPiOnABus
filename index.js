@@ -87,6 +87,9 @@ var launcher = function() {
 		process.exit(1);
 	}
 
+	loadRemoteConfig();
+
+	/*
 	//Support for pointing to an alternate/updatable localconfig
 	if (localconfig.useAlternateLocalConfigPath != undefined) {
 		try {
@@ -138,8 +141,9 @@ var launcher = function() {
 			loadRemoteConfig();
 		}
 	}
+	*/
 }
 
 module.exports.launcher = launcher;
 
-launcher();
+//launcher();
