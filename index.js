@@ -91,7 +91,7 @@ var launcher = function() {
 	if (remoteConfig != undefined) {
 		console.log("Loading config...");
 		runRemoteConfig(remoteConfig);
-
+	}
 	/*
 	//Support for pointing to an alternate/updatable localconfig
 	if (localconfig.useAlternateLocalConfigPath != undefined) {
