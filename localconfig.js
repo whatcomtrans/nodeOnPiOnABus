@@ -1,9 +1,9 @@
 module.exports.localconfig = {
-  "useAlternateLocalConfigPath": "../remote-config.js",
-  "configPath": "../remote-config.js",
+  "useAlternateLocalConfigPath": "/home/pi/settings/remote-config.js",
+  "configPath": "/home/pi/settings/remote-config.js",
   "fallbackConfigPath": "./localconfig.js",
-  "saveConfigToPath": "../remote-config.js",
-  "saveConfigToPathTemp": "../remote-config-temp.js",
+  "saveConfigToPath": "/home/pi/settings/remote-config.js",
+  "saveConfigToPathTemp": "/home/pi/settings/tmp/remote-config-temp.js",
   "configURL": "http://piconfig.fleetnet.whatcomtrans.net/config",
   "runDelay": 1.5 * 60 * 1000,
   "getRemoteDelay": 1 * 60 * 1000
@@ -11,7 +11,7 @@ module.exports.localconfig = {
 
 module.exports.myconfig = {
   "executable": "./production.js",
-  "queuePath": "../queue",
+  "queuePath": "/home/pi/queue",
   "IoTConfig": {
     "host": "A6R7AFY5KV5WL.iot.us-west-2.amazonaws.com",
     "port": 8883,
