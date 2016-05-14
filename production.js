@@ -1,4 +1,7 @@
+var execName = "production";
+
 module.exports.run = function(config) {
+	console.log("In " + execName);
 	var emitter = newPatternEmitter();
 	var GPSSource = listenForGPS(config.GPSudpPort, emitter);
 	console.log(GPSSource);
@@ -9,6 +12,7 @@ module.exports.run = function(config) {
 	if (config.privateKeyString != undefined) {
 		config.IoTConfig.privateKey = new Buffer(config.privateKeyString);
 	}
+	console.log("About to create ThingShadow, the current config is: " + JSON.stringify(config));
 	var myThingShadow = createThingShadow(config.IoTConfig, config.shadow, config.queuePath);
 
 	emitter.on("GPS.GPRMC", function(eventObject) {
