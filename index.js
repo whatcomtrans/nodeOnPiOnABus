@@ -87,7 +87,10 @@ var launcher = function() {
 		process.exit(1);
 	}
 
-	loadRemoteConfig();
+	remoteConfig = require(localconfig.configPath).myconfig;
+	if (remoteConfig != undefined) {
+		console.log("Loading config...");
+		runRemoteConfig(remoteConfig);
 
 	/*
 	//Support for pointing to an alternate/updatable localconfig
