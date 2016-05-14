@@ -71,69 +71,75 @@ var loadRemoteConfig = function(){
 	}
 };
 
-console.log("Welcome to WTA's nodeOnPiOnABus running from " + process.cwd());
-//Load the localConfigPath to load a local config
-try {
-	console.log("Attempting to load " + localConfigPath);
-	localconfig = require(localConfigPath).localconfig;
-	console.log("Local config loaded as " + JSON.stringify(localconfig));
-	if (localconfig == undefined) {
-		console.log("Error loading initial config, resulting in udefined, from " + localConfigPath);
-		process.exit(1);
-	}
-} catch (error) {
-	console.log("Error loading initial config, " + error + ", from " + localConfigPath);
-	process.exit(1);
-}
-
-//Support for pointing to an alternate/updatable localconfig
-if (localconfig.useAlternateLocalConfigPath != undefined) {
+var launcher = function() {
+	console.log("Welcome to WTA's nodeOnPiOnABus running from " + process.cwd());
+	//Load the localConfigPath to load a local config
 	try {
-		console.log("Attempting to load alternateLocalConfig using path " + localconfig.useAlternateLocalConfigPath);
-		var alternateLocalConfig = require(localconfig.useAlternateLocalConfigPath).localconfig;
-		if (alternateLocalConfig != undefined) {
-			console.log("Local config loaded as " + JSON.stringify(localconfig));
-			localconfig = alternateLocalConfig;
-		} else {
-			console.log("Error using alternate " + localconfig.useAlternateLocalConfigPath);
-			console.log("localconfig unchanged");
+		console.log("Attempting to load " + localConfigPath);
+		localconfig = require(localConfigPath).localconfig;
+		console.log("Local config loaded as " + JSON.stringify(localconfig));
+		if (localconfig == undefined) {
+			console.log("Error loading initial config, resulting in udefined, from " + localConfigPath);
+			process.exit(1);
 		}
 	} catch (error) {
-		console.log("Error " + error + " using alternate " + localconfig.useAlternateLocalConfigPath);
-		console.log("localconfig unchanged");
+		console.log("Error loading initial config, " + error + ", from " + localConfigPath);
+		process.exit(1);
+	}
+
+	//Support for pointing to an alternate/updatable localconfig
+	if (localconfig.useAlternateLocalConfigPath != undefined) {
+		try {
+			console.log("Attempting to load alternateLocalConfig using path " + localconfig.useAlternateLocalConfigPath);
+			var alternateLocalConfig = require(localconfig.useAlternateLocalConfigPath).localconfig;
+			if (alternateLocalConfig != undefined) {
+				console.log("Local config loaded as " + JSON.stringify(localconfig));
+				localconfig = alternateLocalConfig;
+			} else {
+				console.log("Error using alternate " + localconfig.useAlternateLocalConfigPath);
+				console.log("localconfig unchanged");
+			}
+		} catch (error) {
+			console.log("Error " + error + " using alternate " + localconfig.useAlternateLocalConfigPath);
+			console.log("localconfig unchanged");
+		}
+	}
+
+	//For Testing and Install support, prompt for configURL or configPath
+	if (process.argv[2] != undefined) {
+		//Use command line argument
+		var arg = process.argv[2];
+		if (arg.indexOf("http") >= 0) {
+			//Use as configURL
+			console.log("Using command line arguement " + arg + " as configURL");
+			localconfig.configURL = arg;
+		} else {
+			//Use as configPath
+			console.log("Using command line arguement " + arg + " as configPath");
+			localconfig.configPath = arg;
+			//skip attempt at retrieving configURL
+			delete localconfig.configURL;
+		}
+	} // else no command line arguments
+
+	//attempt to get remote config from URL if provided
+	if (localconfig.configURL != undefined) {
+		if (localconfig.getRemoteDelay != undefined) {
+			console.log("Waiting " + localconfig.getRemoteDelay + " milliseconds to attempt to retrieve config file from " + localconfig.configURL + " and save to " + localconfig.saveConfigToPath);
+			setTimeout(getRemoteConfig, localconfig.getRemoteDelay);
+		} else {
+			getRemoteConfig();
+		}
+	} else {
+		//Just start configPath
+		if (localconfig.runDelay != undefined) {
+			setTimeout(loadRemoteConfig, localconfig.runDelay);
+		} else {
+			loadRemoteConfig();
+		}
 	}
 }
 
-//For Testing and Install support, prompt for configURL or configPath
-if (process.argv[2] != undefined) {
-	//Use command line argument
-	var arg = process.argv[2];
-	if (arg.indexOf("http") >= 0) {
-		//Use as configURL
-		console.log("Using command line arguement " + arg + " as configURL");
-		localconfig.configURL = arg;
-	} else {
-		//Use as configPath
-		console.log("Using command line arguement " + arg + " as configPath");
-		localconfig.configPath = arg;
-		//skip attempt at retrieving configURL
-		delete localconfig.configURL;
-	}
-} // else no command line arguments
+module.exports.launcher = launcher;
 
-//attempt to get remote config from URL if provided
-if (localconfig.configURL != undefined) {
-	if (localconfig.getRemoteDelay != undefined) {
-		console.log("Waiting " + localconfig.getRemoteDelay + " milliseconds to attempt to retrieve config file from " + localconfig.configURL + " and save to " + localconfig.saveConfigToPath);
-		setTimeout(getRemoteConfig, localconfig.getRemoteDelay);
-	} else {
-		getRemoteConfig();
-	}
-} else {
-	//Just start configPath
-	if (localconfig.runDelay != undefined) {
-		setTimeout(loadRemoteConfig, localconfig.runDelay);
-	} else {
-		loadRemoteConfig();
-	}
-}
+launcher();
