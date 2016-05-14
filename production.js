@@ -13,12 +13,12 @@ module.exports.run = function(config) {
 		config.IoTConfig.privateKey = new Buffer(config.privateKeyString);
 	}
 	console.log("About to create ThingShadow, the current config is: " + JSON.stringify(config));
-	var myThingShadow = createThingShadow(config.IoTConfig, config.shadow, config.queuePath);
+	//var myThingShadow = createThingShadow(config.IoTConfig, config.shadow, config.queuePath);
 
 	emitter.on("GPS.GPRMC", function(eventObject) {
 		console.log("Emitter received GPRMC message...updating...");
-		myThingShadow.setStateReportedValue("latitude", eventObject.lat, false);
-		myThingShadow.setStateReportedValue("longitude", eventObject.lon, true);
+		//myThingShadow.setStateReportedValue("latitude", eventObject.lat, false);
+		//myThingShadow.setStateReportedValue("longitude", eventObject.lon, true);
 	});
 }
 
