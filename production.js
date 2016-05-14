@@ -16,7 +16,7 @@ module.exports.run = function(config) {
 	//var myThingShadow = createThingShadow(config.IoTConfig, config.shadow, config.queuePath);
 
 	emitter.on("GPS.GPRMC", function(eventObject) {
-		console.log("Emitter received GPRMC message...updating...");
+		console.log("Emitter received GPRMC message...updating..." + JSON.stringify(eventObject));
 		//myThingShadow.setStateReportedValue("latitude", eventObject.lat, false);
 		//myThingShadow.setStateReportedValue("longitude", eventObject.lon, true);
 	});
