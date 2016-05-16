@@ -78,7 +78,6 @@ var newPatternEmitter = function() {
 var createThingShadow = function(AWSShadowConfig, initialState, queuePath) {
 	var awsIot = require('aws-iot-device-sdk');
 	var Queue = require('file-queue').Queue;
-	//TODO Need to move client certificates into the config file
 	//TODO Handle re-registering after long disconnected states
 	var thisShadow = awsIot.thingShadow(AWSShadowConfig);
 	thisShadow.thingName = AWSShadowConfig.thingName;

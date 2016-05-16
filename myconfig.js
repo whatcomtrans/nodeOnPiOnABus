@@ -16,7 +16,7 @@ module.exports.myconfig = {
   "shadow": {
     "state": {
       "reported": {
-        "VehicleNumber": "900"
+        "vehicleNumber": "900"
       }
     }
   }
