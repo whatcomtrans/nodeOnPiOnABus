@@ -1,6 +1,6 @@
 module.exports.myconfig = {
   "executable": "./production.js",
-  "queuePath": "../queue",
+  "queuePath": "/home/pi/nodeOnPiOnABus/queue",
   "IoTConfig": {
     "host": "A6R7AFY5KV5WL.iot.us-west-2.amazonaws.com",
     "port": 8883,
