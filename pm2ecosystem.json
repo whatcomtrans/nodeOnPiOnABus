@@ -1,0 +1,8 @@
+{
+  "apps" : [{
+    "name"        : "nodeOnPiOnABus",
+    "script"      : "/home/pi/nodeOnPiOnABus/index.js",
+    "watch"       : true,
+    "cwd"         : "/home/pi/nodeOnPiOnABus"
+  }]
+}

@@ -1,146 +1,205 @@
-//index.js
+"use strict";
+
+// index.js
 // WTA nodeOnPiOnABus
+// Version 2.0
+// Last updated 2016-09-11 by R. Josh Nylander
+//
+// Constants
+const awsIoTThing = require("awsIoTThing");
+const fs = require('fs');
+const nmea = require("nmea");
+const dgram = require("dgram");
+const Emitter = require('pattern-emitter');
+const EventEmitter = require('events');
 
-var localConfigPath = "./localconfig.js";
-var localconfig = null;
+/**
+ * Turn on and off debug to console
+ */
+var debugOn = true;  // TODO
 
-var fs = require("fs-extra");
-var request = require("request");
-
-var getRemoteConfig = function(){
-	console.log("In getRemoteConfig");
-	console.log("Attempting to retrieve config file from " + localconfig.configURL + " and save to " + localconfig.saveConfigToPath);
-	request(localconfig.configURL, saveRemoteConfig).pipe(fs.createWriteStream(localconfig.saveConfigToPathTemp));
-};
-
-var saveRemoteConfig = function() {
-	console.log("In saveRemoteConfig");
-	console.log("Retrieved " + localconfig.configURL + " and saved to " + localconfig.saveConfigToPathTemp);
-	//Test before copying
-	try {
-		var testConfig = require(localconfig.saveConfigToPathTemp).myconfig;
-		if (testConfig != undefined) {
-			//Copy file then call loadRemoteConfig
-			console.log("Copying " + localconfig.saveConfigToPathTemp + " to " + localconfig.saveConfigToPath);
-			fs.copy(localconfig.saveConfigToPathTemp, localconfig.saveConfigToPath, function(err) {
-				if (err != undefined) {
-					console.log("Error copying " + localconfig.saveConfigToPathTemp + " to " + localconfig.saveConfigToPath + " of " + err);
-				}
-				loadRemoteConfig();
-			});
-		} else {
-			console.log(localconfig.saveConfigToPathTemp + " not valid, using " + localconfig.saveConfigToPath);
-			loadRemoteConfig();
-		}
-	} catch (error) {
-		console.log(localconfig.saveConfigToPathTemp + " not valid, using " + localconfig.saveConfigToPath);
-		loadRemoteConfig();
-	}
-};
-
-var runRemoteConfig = function(config){
-	console.log("In runRemoteConfig");
-	console.log("Using executable: " + config.executable);
-	var executable = require(config.executable);
-	executable.run(config);
-};
-
-var loadRemoteConfig = function(){
-	console.log("In loadRemoteConfig");
-	console.log(JSON.stringify(localconfig));
-	var remoteConfig = null;
-	console.log("Using configPath: " + localconfig.configPath);
-	if (localconfig.configPath != undefined) {
-		try {
-			remoteConfig = require(localconfig.configPath).myconfig;
-			if (remoteConfig != undefined) {
-				console.log("Loading config...");
-				runRemoteConfig(remoteConfig);
-			} else {
-				console.log("Loading fallbackConfigPath...1");
-				runRemoteConfig(require(localconfig.fallbackConfigPath).myconfig);
-			}
-		} catch (error) {
-			console.log("Loading fallbackConfigPath...2");
-			runRemoteConfig(require(localconfig.fallbackConfigPath).myconfig);
-		}
-	} else {
-		//Use fallbackConfigPath
-		console.log("Loading fallbackConfigPath...3");
-		runRemoteConfig(require(localconfig.fallbackConfigPath).myconfig);
-	}
-};
-
-var launcher = function() {
-	console.log("Welcome to WTA's nodeOnPiOnABus running from " + process.cwd());
-	//Load the localConfigPath to load a local config
-	try {
-		console.log("Attempting to load " + localConfigPath);
-		localconfig = require(localConfigPath).localconfig;
-		console.log("Local config loaded as " + JSON.stringify(localconfig));
-		if (localconfig == undefined) {
-			console.log("Error loading initial config, resulting in udefined, from " + localConfigPath);
-			process.exit(1);
-		}
-	} catch (error) {
-		console.log("Error loading initial config, " + error + ", from " + localConfigPath);
-		process.exit(1);
-	}
-
-	//Support for pointing to an alternate/updatable localconfig
-	if (localconfig.useAlternateLocalConfigPath != undefined) {
-		try {
-			console.log("Attempting to load alternateLocalConfig using path " + localconfig.useAlternateLocalConfigPath);
-			var alternateLocalConfig = require(localconfig.useAlternateLocalConfigPath).localconfig;
-			if (alternateLocalConfig != undefined) {
-				console.log("Local config loaded as " + JSON.stringify(localconfig));
-				localconfig = alternateLocalConfig;
-			} else {
-				console.log("Error using alternate " + localconfig.useAlternateLocalConfigPath);
-				console.log("localconfig unchanged");
-			}
-		} catch (error) {
-			console.log("Error " + error + " using alternate " + localconfig.useAlternateLocalConfigPath);
-			console.log("localconfig unchanged");
-		}
-	}
-
-	//For Testing and Install support, prompt for configURL or configPath
-	if (process.argv[2] != undefined) {
-		//Use command line argument
-		var arg = process.argv[2];
-		if (arg.indexOf("http") >= 0) {
-			//Use as configURL
-			console.log("Using command line arguement " + arg + " as configURL");
-			localconfig.configURL = arg;
-		} else {
-			//Use as configPath
-			console.log("Using command line arguement " + arg + " as configPath");
-			localconfig.configPath = arg;
-			//skip attempt at retrieving configURL
-			delete localconfig.configURL;
-		}
-	} // else no command line arguments
-
-	//attempt to get remote config from URL if provided
-	if (localconfig.configURL != undefined) {
-		if (localconfig.getRemoteDelay != undefined) {
-			console.log("Waiting " + localconfig.getRemoteDelay + " milliseconds to attempt to retrieve config file from " + localconfig.configURL + " and save to " + localconfig.saveConfigToPath);
-			setTimeout(getRemoteConfig, localconfig.getRemoteDelay);
-		} else {
-			getRemoteConfig();
-		}
-	} else {
-		//Just start configPath
-		if (localconfig.runDelay != undefined) {
-			setTimeout(loadRemoteConfig, localconfig.runDelay);
-		} else {
-			loadRemoteConfig();
-		}
-	}
-
+/**
+ * //debugConsole - A helper function for debuging to console, or not
+ *
+ * @param  {type} msg description
+ * @return {type}     description
+ */
+function debugConsole(msg) {
+     if (debugOn) {
+          console.log("DEBUG: " + msg);
+     }
 }
 
-module.exports.launcher = launcher;
 
-//launcher();
+//
+// Create the event model
+var emitter = patternEmitterFactory();
+//
+
+// IoT variables
+var awsClient;
+var awsThing;
+
+class settingsOnly extends EventEmitter {
+     constructor(settingsObject, callback) {
+          super();
+          var _this = this;
+          _this._settings = settingsObject;
+     }
+
+     reportProperty(propertyName, propertyValue, delayUpdate, callback) {
+          //delayUpdate not supported
+          var _this = this;
+          _this.setProperty(propertyName, propertyValue);
+          callback = (typeof callback === 'function') ? callback : function() {};
+          callback();
+     }
+
+     setProperty(propertyName, propertyValue) {
+          var _this = this;
+          _this._settings[propertyName] = propertyValue;
+     }
+
+     getProperty(propertyName) {
+          var _this = this;
+          if (_this._settings.hasOwnProperty(propertyName)) {
+               return this._settings[propertyName];
+          } else {
+               return null;
+          }
+     }
+}
+
+// Connect to AWS IoT
+// Determine my MAC address and use as clientId
+emitter.on("start", function() {
+     debugConsole("about to getmac");
+     require('getmac').getMac(function (err, mac) {
+          if (err)  throw err
+          awsConfig.clientId = "nodeOnPiOnABus-client-" + mac;
+          emitter.emit("macAddress", mac);
+          emitter.emit("clientId", awsConfig.clientId);
+     });
+});
+emitter.on("clientId", function(clientId) {
+     debugConsole("Creating awsClient with clientId of " + clientId);
+     awsIoTThing.clientFactory(awsConfig, function(err, client) {
+          awsClient = client;
+          emitter.emit("awsClient.created", client);
+     });
+});
+
+// For testing
+/*emitter.on("awsClient.created", function () {
+     debugConsole("awsClient.created, about to emit vehicleID");
+     emitter.emit("vehicleID", "000");
+}); */
+
+//
+// Begin parsing GPS data
+emitter.on("GPSudpPort", function(port) {
+     listenForGPS(port, emitter);
+});
+//
+// Once I know my vehicleID...
+emitter.on("vehicleID", function(id) {
+     var vehicleID = id;
+     var thingName = "vehicle" + id;
+     // Create awsThing
+     awsClient.thingFactory(thingName, {"persistentSubscribe": true}, false, function(err, thing) {
+          awsThing = thing;
+          debugConsole("Error: " + err);
+          debugConsole(JSON.stringify(thing));
+          debugConsole("thing created");
+          emitter.emit("awsThing.created", thing);
+          awsThing.register(function() {
+               debugConsole("thing registered");
+               emitter.emit("awsThing.registered", awsThing);
+               awsThing.retrieveState(function(){
+                    // TODO Need to copy all local settings up to thing
+                    awsThing.reportProperty("vehicleId", vehicleID, false);
+               });
+          });
+     });
+});
+
+//
+// Attempt to update my git repo
+// TODO
+// How do I get notified of the version delta?
+
+// Update with GPS info
+emitter.on("GPS.GPRMC",function(sentence){
+     debugConsole("Updating lat/lon");
+     awsThing.reportProperty("lat", sentence.lat, true);
+     awsThing.reportProperty("lon", sentence.lon, false);
+});
+
+// GPS
+emitter.on("GPS.message", function(message) {
+     var msgString = message.message;
+     if (msgString.indexOf("$GPRMC") > -1) {
+          var sentence = nmea.parse(msgString);
+          sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
+          sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
+          emitter.emit("GPS.GPRMC",sentence);
+     }
+     if (msgString.indexOf("$GPGSV") > -1) {
+          var sentence = nmea.parse(msgString);
+          emitter.emit("GPS.GPGSV",sentence);
+     }
+     if (msgString.indexOf("$GPGGA") > -1) {
+          var sentence = nmea.parse(msgString);
+          sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
+          sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
+          emitter.emit("GPS.GPGGA",sentence);
+     }
+     if (msgString.indexOf("$RLN") > -1) {
+		var vehicleNumber = msgString.substr((msgString.indexOf(";ID=")+5),3);
+          debugConsole(vehicleNumber);  // TODO remove this logging once confirmed
+          emitter.emit("vehicleID", vehicleNumber);  // TODO Is this the right thing to emit?
+     }
+     //SAMPLE RLN MESSAGE:
+     //$RLN77680000+487919234-1224970480+000170330293+0001184908020406001265171A19362458255D295B000000000032;ID=B802;*44<
+
+});
+//
+// Functions
+function patternEmitterFactory() {
+	//https://github.com/daniaelstjules/pattern-emitter/
+	//https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp
+	var patternEmitter = new Emitter();
+	patternEmitter.__emit = patternEmitter.emit;
+	return patternEmitter;
+}
+
+function listenForGPS(udpPort, patternEmitter) {
+	//Monitor GPS data from UDP
+	var server = dgram.createSocket("udp4");
+	debugConsole("Listing on UDP port " + udpPort);
+	server.on("error", function (err) {
+		debugConsole("server error:\n" + err.stack);
+		server.close();
+	});
+	server.on("listening", function () {
+		//this.myIP = server.address();
+		debugConsole("Server is listening for udp packets...");
+	});
+	server.on("message", function (msg, rinfo) {
+		debugConsole("Server received message...");
+		var gpsMessage = new Object();
+		gpsMessage.message = String(msg);
+		patternEmitter.emit("GPS.message", gpsMessage);
+	});
+	//GPS parsing and emitting
+
+	server.bind(udpPort);
+	return server;
+}
+
+// Load settings from folder above
+//var settings = require("../settings/settings.json").GPSudpPort;
+var awsConfig = require("../settings/awsclientconfig.json");
+awsThing = new settingsOnly(require("../settings/settings.json"));
+emitter.emit("GPSudpPort", awsThing.getProperty("GPSudpPort"));
+emitter.emit("start");

@@ -1,6 +1,6 @@
 {
   "name": "nodeonpionabus",
-  "version": "0.0.1",
+  "version": "0.2.1",
   "description": "Node.js on a RasberyPi on a transit Bus",
   "main": "index.js",
   "scripts": {
@@ -18,10 +18,11 @@
   "homepage": "https://github.com/whatcomtrans/nodeOnPiOnABus",
   "dependencies": {
     "aws-iot-device-sdk": "^1.0.12",
+    "awsiotthing": "git+https://github.com/whatcomtrans/awsIoTThing.git",
     "file-queue": "^0.2.1",
     "fs-extra": "^0.30.0",
+    "getmac": "^1.2.1",
     "nmea": "0.0.9",
-    "pattern-emitter": "^1.0.0",
-    "request": "^2.72.0"
+    "pattern-emitter": "^1.0.0"
   }
 }
