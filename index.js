@@ -143,8 +143,11 @@ emitter.on("awsThing.ready", function() {
                     //change commit
                     var newCommit = awsThing.getDeltaProperty("commit");
                     debugConsole("Need to update the commit to: " + newCommit);
-                    exec('git fetch --all && checkout --force "' + newCommit + '"', (error, stdout, stderr) => {
+                    exec('git fetch --all', (error, stdout, stderr) => {
                          debugConsole("git: " + stdout);
+                         exec('git checkout --force "' + newCommit + '"', (error, stdout, stderr) => {
+                              debugConsole("git: " + stdout);
+                         });
                     });
                     // Call 'git fetch --all'
                     // Call 'git checkout --force "${TARGET}"'
