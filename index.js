@@ -12,7 +12,7 @@ const nmea = require("nmea");
 const dgram = require("dgram");
 const Emitter = require('pattern-emitter');
 const EventEmitter = require('events');
-
+const exec = require('child_process').exec;
 /**
  * Turn on and off debug to console
  */
@@ -102,7 +102,7 @@ emitter.on("GPSudpPort", function(port) {
 });
 //
 // Once I know my vehicleID...
-emitter.on("vehicleID", function(id) {
+emitter.once("vehicleID", function(id) {
      var vehicleID = id;
      var thingName = "vehicle" + id;
      // Create awsThing
@@ -118,6 +118,7 @@ emitter.on("vehicleID", function(id) {
                awsThing.retrieveState(function(){
                     // TODO Need to copy all local settings up to thing
                     awsThing.reportProperty("vehicleId", vehicleID, false);
+                    emitter.emit("awsThing.ready");
                });
           });
      });
@@ -126,7 +127,33 @@ emitter.on("vehicleID", function(id) {
 //
 // Attempt to update my git repo
 // TODO
-// How do I get notified of the version delta?
+// Determine current commit ID
+// Report it
+emitter.on("awsThing.ready", function() {
+     exec('git log -1 --format="%H"', (error, stdout, stderr) => {
+          if (error) {
+               console.error(`exec error: ${error}`);
+          } else {
+               debugConsole("Current git commit is: " + stdout.replace(/(\r\n|\n|\r)/gm,""));
+               awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""));
+
+               // Get notified of the version delta
+               debugConsole("Delta git commit is: " + awsThing.getDeltaProperty("commit"));
+               if (awsThing.getDeltaProperty("commit") != null) {
+                    //change commit
+                    var newCommit = awsThing.getDeltaProperty("commit")
+                    debugConsole ("Need to update the commit to: " + newCommit);
+                    exec('git fetch --all && checkout --force "' + newCommit + '"', (error, stdout, stderr) => {
+                         debugConsole("git: " + stdout);
+                    };
+                    // Call 'git fetch --all'
+                    // Call 'git checkout --force "${TARGET}"'
+                    //
+               }
+          }
+     });
+
+});
 
 // Update with GPS info
 emitter.on("GPS.GPRMC",function(sentence){
