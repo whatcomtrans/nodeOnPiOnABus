@@ -41,6 +41,8 @@ var settings = require("../settings/settings.json");
 // This function is the essense of the rest of the program.
 // It runs once the thing is created.  Setup all of the ON listeners here.
 function onAwsThing() {
+     debugConsole("Thing created, running onAwsThing");
+
      // Listen for GPS
      listenForGPS(awsThing.getProperty("GPSudpPort"), awsThing);
 
@@ -117,7 +119,7 @@ function createThing() {
           if (err)  throw err
           awsConfig.clientId = "nodeOnPiOnABus-client-" + mac;
           settings.macAddress = mac;
-          debugConsole("Creating awsClient with clientId of " + clientId);
+          debugConsole("Creating awsClient with clientId of " + awsConfig.clientId);
           awsIoTThing.clientFactory(awsConfig, function(err, client) {
                awsClient = client;
                var thingName = "vehicle" + settings.vehicleId;
@@ -201,4 +203,5 @@ function listenForGPS(udpPort, patternEmitter) {
 }
 
 // Ok, lets get this started
+debugConsole("Lets get started");
 createThing();
