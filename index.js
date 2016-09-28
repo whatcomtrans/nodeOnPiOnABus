@@ -174,7 +174,7 @@ function checkGitVersion() {
           }
      });
 
-});
+}
 
 function listenForGPS(udpPort, patternEmitter) {
 	//Monitor GPS data from UDP
