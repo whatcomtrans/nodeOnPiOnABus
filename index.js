@@ -37,6 +37,7 @@ var awsThing;
 //Settings
 var awsConfig = require("../settings/awsclientconfig.json");
 var settings = require("../settings/settings.json");
+debugConsole("Initial settings: " + JSON.stringify(settings));
 
 // This function is the essense of the rest of the program.
 // It runs once the thing is created.  Setup all of the ON listeners here.
@@ -134,9 +135,9 @@ function createThing() {
                          awsThing.retrieveState(function(){
                               var propName;
                               for (propName in settings) {
-                                   awsThing.reportProperty(propName, settings[GPSudpPort], true);
+                                   awsThing.reportProperty(propName, settings[propName], true);
                               }
-                              reportState();
+                              awsThing.reportState();
                               onAwsThing();
                          });
                     });
