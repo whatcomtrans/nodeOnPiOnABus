@@ -132,8 +132,11 @@ function createThing() {
                     awsThing.register(function() {
                          debugConsole("thing registered");
                          awsThing.retrieveState(function(){
-                              // TODO Need to copy all local settings up to thing
-                              awsThing.reportProperty("vehicleId", settings.vehicleId, false);
+                              var propName;
+                              for (propName in settings) {
+                                   awsThing.reportProperty(propName, settings[GPSudpPort], true);
+                              }
+                              reportState();
                               onAwsThing();
                          });
                     });
