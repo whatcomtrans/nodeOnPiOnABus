@@ -65,6 +65,13 @@ function onAwsThing() {
           }
      });
 
+     // If commit is different, run the checkGitVersion
+     awsThing.on("delta", function(state) {
+          if (awsThing.getDeltaProperty("commit") != null) {
+               checkGitVersion();
+          }
+     });
+
      // Update with GPS info
      awsThing.on("GPS.GPRMC",function(sentence){
           debugConsole("Updating lat/lon");
@@ -193,4 +200,5 @@ function listenForGPS(udpPort, patternEmitter) {
 	return server;
 }
 
+// Ok, lets get this started
 createThing();
