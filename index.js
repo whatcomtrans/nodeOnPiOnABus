@@ -2,7 +2,7 @@
 
 // index.js
 // WTA nodeOnPiOnABus
-// Version 0.2.3
+// Version 2.0.0
 // Last updated 2016-09-11 by R. Josh Nylander
 //
 // Constants
@@ -171,7 +171,7 @@ function checkGitVersion() {
                                    if (error) {
                                         console.error(`exec error: ${error}`);
                                    } else {
-                                        awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""));
+                                        awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {process.exit(0);});
                                    }
                               });
                          });
