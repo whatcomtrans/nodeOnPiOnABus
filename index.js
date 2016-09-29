@@ -52,10 +52,15 @@ function onAwsThing() {
      // Verify we are up to date
      checkGitVersion();
 
-     awsThing.once("vehicleID", function(id) {
+     awsThing.on("GPS.RLN.message", function(msgString) {
+          client.publish("/GPS.RLN.message", msgString);
+     });
+
+     awsThing.once("GPS.RLN.message", function(msgString) {
+          var vehicleNumber = msgString.substr((msgString.indexOf(";ID=")+5),3);
           // is vehicleID different then current settings
-          debugConsole("Updating vehicleId from " + awsThing.getProperty("vehicleId") + " to " + id);
           if (id != awsThing.getProperty("vehicleId")) {
+               debugConsole("Updating vehicleId from " + awsThing.getProperty("vehicleId") + " to " + id);
                awsThing.reportProperty("vehicleId", id, false, function() {
                     awsThing.retrieveState(function () {
                          jsonfile.writeFile("../settings/settings.json", awsThing.getReported(), function (err) {
@@ -106,9 +111,6 @@ function onAwsThing() {
                awsThing.emit("GPS.GPGGA",sentence);
           }
           if (msgString.indexOf(">RLN") > -1) {
-     		var vehicleNumber = msgString.substr((msgString.indexOf(";ID=")+5),3);
-               // debugConsole(vehicleNumber);  // TODO remove this logging once confirmed
-               awsThing.emit("vehicleID", vehicleNumber);  // TODO Is this the right thing to emit?
                awsThing.emit("GPS.RLN.message",msgString);
           }
           //SAMPLE RLN MESSAGE:
