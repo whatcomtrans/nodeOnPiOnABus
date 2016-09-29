@@ -53,7 +53,7 @@ function onAwsThing() {
      checkGitVersion();
 
      awsThing.on("GPS.RLN.message", function(msgString) {
-          client.publish("/GPS.RLN.message", msgString);
+          awsClient.publish("/GPS.RLN.message", msgString);
      });
 
      awsThing.once("GPS.RLN.message", function(msgString) {
