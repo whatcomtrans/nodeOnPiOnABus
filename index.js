@@ -87,6 +87,7 @@ function onAwsThing() {
      // GPS
      awsThing.on("GPS.message", function(message) {
           var msgString = message.message;
+          debugConsole(msgString);
           if (msgString.indexOf("$GPRMC") > -1) {
                var sentence = nmea.parse(msgString);
                sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
@@ -206,6 +207,7 @@ function listenForGPS(udpPort, patternEmitter) {
 	//GPS parsing and emitting
 
 	server.bind(udpPort);
+     connections.listenForGPS = server;
 	return server;
 }
 
@@ -226,6 +228,12 @@ function getTcpConnection(name, options) {
 
 // TODO TESTING
 // var s = getTcpConnection("test", {port: 14001, host: "192.168.1.129"})
+
+// Setup cleanup;
+process.on("beforeExit", function() {
+     connections.listenForGPS.close();
+     debugConsole("Exiting...");
+});
 
 // Ok, lets get this started
 debugConsole("Lets get started");
