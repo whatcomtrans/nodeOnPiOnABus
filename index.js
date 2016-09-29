@@ -54,6 +54,7 @@ function onAwsThing() {
 
      awsThing.once("vehicleID", function(id) {
           // is vehicleID different then current settings
+          debugConsole("Updating vehicleId from " + awsThing.getProperty("vehicleId") + " to " + id);
           if (id != awsThing.getProperty("vehicleId")) {
                awsThing.reportProperty("vehicleId", id, false, function() {
                     awsThing.retrieveState(function () {
@@ -87,7 +88,7 @@ function onAwsThing() {
      // GPS
      awsThing.on("GPS.message", function(message) {
           var msgString = message.message;
-          debugConsole(msgString);
+          debugConsole("Recieved GPS message: " + msgString);
           if (msgString.indexOf("$GPRMC") > -1) {
                var sentence = nmea.parse(msgString);
                sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
@@ -106,7 +107,7 @@ function onAwsThing() {
           }
           if (msgString.indexOf(">RLN") > -1) {
      		var vehicleNumber = msgString.substr((msgString.indexOf(";ID=")+5),3);
-               debugConsole(vehicleNumber);  // TODO remove this logging once confirmed
+               // debugConsole(vehicleNumber);  // TODO remove this logging once confirmed
                awsThing.emit("vehicleID", vehicleNumber);  // TODO Is this the right thing to emit?
                awsThing.emit("GPS.RLN.message",msgString);
           }
@@ -199,7 +200,7 @@ function listenForGPS(udpPort, patternEmitter) {
 		debugConsole("Server is listening for udp packets...");
 	});
 	server.on("message", function (msg, rinfo) {
-		debugConsole("Server received message...");
+		//debugConsole("Server received message...");
 		var gpsMessage = new Object();
 		gpsMessage.message = String(msg);
 		patternEmitter.emit("GPS.message", gpsMessage);
