@@ -2,7 +2,7 @@
 
 // index.js
 // WTA nodeOnPiOnABus
-// Version 2.0.0
+// Version 2.0.1
 // Last updated 2016-09-11 by R. Josh Nylander
 //
 // Constants
@@ -53,7 +53,7 @@ function onAwsThing() {
      checkGitVersion();
 
      awsThing.on("GPS.RLN.message", function(msgString) {
-          awsClient.publish("/GPS.RLN.message", msgString);
+          awsClient.publish("/vehicles/GPS.RLN.message", msgString);
      });
 
      awsThing.once("GPS.RLN.message", function(msgString) {
@@ -213,24 +213,6 @@ function listenForGPS(udpPort, patternEmitter) {
      connections.listenForGPS = server;
 	return server;
 }
-
-function getTcpConnection(name, options) {
-     var socket;
-     if (connections.hasOwnProperty(name)) {
-          socket = connections[name];
-          if (socket.destroyed()) {
-               socket.connect(options);
-          }
-          return socket;
-     } else {
-          socket = net.createConnection(options);
-          connections[name] = socket;
-          return socket;
-     }
-}
-
-// TODO TESTING
-// var s = getTcpConnection("test", {port: 14001, host: "192.168.1.129"})
 
 // Setup cleanup;
 process.on("beforeExit", function() {
