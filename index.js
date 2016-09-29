@@ -170,10 +170,14 @@ function checkGitVersion() {
                     debugConsole ("Need to update the commit to: " + newCommit);
                     // Call 'git fetch --all'
                     exec('git fetch --all', (error, stdout, stderr) => {
-                         debugConsole("git: " + stdout);
+                         debugConsole("git error: " + error);
+                         debugConsole("git stdout: " + stdout);
+                         debugConsole("git stderr: " + stderr);
                          // Call 'git checkout --force "${TARGET}"'
                          exec('git checkout --force "' + newCommit + '"', (error, stdout, stderr) => {
-                              debugConsole("git: " + stdout);
+                              debugConsole("git error: " + error);
+                              debugConsole("git stdout: " + stdout);
+                              debugConsole("git stderr: " + stderr);
                               exec('git log -1 --format="%H"', (error, stdout, stderr) => {
                                    if (error) {
                                         console.error(`exec error: ${error}`);
