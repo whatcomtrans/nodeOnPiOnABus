@@ -6,7 +6,7 @@
 // Last updated 2016-09-11 by R. Josh Nylander
 //
 // Constants
-const awsIoTThing = require("awsIoTThing");
+const awsIoTThing = require("awsiotthing");
 const fs = require('fs');
 const nmea = require("nmea");
 const dgram = require("dgram");
