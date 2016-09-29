@@ -12,7 +12,7 @@ const nmea = require("nmea");
 const dgram = require("dgram");
 const exec = require('child_process').exec;
 const jsonfile = require('jsonfile');
-const net = require('net');
+//const net = require('net');
 
 /**
  * Turn on and off debug to console
@@ -223,6 +223,9 @@ function getTcpConnection(name, options) {
           return socket;
      }
 }
+
+// TODO TESTING
+// var s = getTcpConnection("test", {port: 14001, host: "192.168.1.129"})
 
 // Ok, lets get this started
 debugConsole("Lets get started");
