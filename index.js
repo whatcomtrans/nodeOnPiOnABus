@@ -34,7 +34,7 @@ function debugConsole(msg) {
 // IoT variables
 var awsClient;
 var awsThing;
-var connections;
+var connections = new Object();
 
 //Settings
 var awsConfig = require("../settings/awsclientconfig.json");
@@ -175,7 +175,7 @@ function checkGitVersion() {
                                    if (error) {
                                         console.error(`exec error: ${error}`);
                                    } else {
-                                        awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {process.exit(0);});
+                                        awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {process.exit(1);});
                                    }
                               });
                          });
