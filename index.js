@@ -11,7 +11,8 @@ const fs = require('fs');
 const nmea = require("nmea");
 const dgram = require("dgram");
 const exec = require('child_process').exec;
-var jsonfile = require('jsonfile')
+const jsonfile = require('jsonfile');
+const net = require('net');
 
 /**
  * Turn on and off debug to console
@@ -33,6 +34,7 @@ function debugConsole(msg) {
 // IoT variables
 var awsClient;
 var awsThing;
+var connections;
 
 //Settings
 var awsConfig = require("../settings/awsclientconfig.json");
@@ -105,6 +107,7 @@ function onAwsThing() {
      		var vehicleNumber = msgString.substr((msgString.indexOf(";ID=")+5),3);
                debugConsole(vehicleNumber);  // TODO remove this logging once confirmed
                awsThing.emit("vehicleID", vehicleNumber);  // TODO Is this the right thing to emit?
+               awsThing.emit("GPS.RLN.message",msgString);
           }
           //SAMPLE RLN MESSAGE:
           //$RLN77680000+487919234-1224970480+000170330293+0001184908020406001265171A19362458255D295B000000000032;ID=B802;*44<
@@ -204,6 +207,21 @@ function listenForGPS(udpPort, patternEmitter) {
 
 	server.bind(udpPort);
 	return server;
+}
+
+function getTcpConnection(name, options) {
+     var socket;
+     if (connections.hasOwnProperty(name)) {
+          socket = connections[name];
+          if (socket.destroyed()) {
+               socket.connect(options);
+          }
+          return socket;
+     } else {
+          socket = net.createConnection(options);
+          connections[name] = socket;
+          return socket;
+     }
 }
 
 // Ok, lets get this started
