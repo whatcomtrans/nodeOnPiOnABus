@@ -57,7 +57,7 @@ function onAwsThing() {
      });
 
      awsThing.once("GPS.RLN.message", function(msgString) {
-          var vehicleNumber = msgString.substr((msgString.indexOf(";ID=")+5),3);
+          var id = msgString.substr((msgString.indexOf(";ID=")+5),3);
           // is vehicleID different then current settings
           if (id != awsThing.getProperty("vehicleId")) {
                debugConsole("Updating vehicleId from " + awsThing.getProperty("vehicleId") + " to " + id);
