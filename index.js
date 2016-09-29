@@ -104,14 +104,14 @@ function onAwsThing() {
                sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
                awsThing.emit("GPS.GPGGA",sentence);
           }
-          if (msgString.indexOf("$RLN") > -1) {
+          if (msgString.indexOf(">RLN") > -1) {
      		var vehicleNumber = msgString.substr((msgString.indexOf(";ID=")+5),3);
                debugConsole(vehicleNumber);  // TODO remove this logging once confirmed
                awsThing.emit("vehicleID", vehicleNumber);  // TODO Is this the right thing to emit?
                awsThing.emit("GPS.RLN.message",msgString);
           }
           //SAMPLE RLN MESSAGE:
-          //$RLN77680000+487919234-1224970480+000170330293+0001184908020406001265171A19362458255D295B000000000032;ID=B802;*44<
+          //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
      });
 
 }
