@@ -68,7 +68,7 @@ function onAwsThing() {
                                    console.error(err);
                               } else {
                                    //exit and Restart
-                                   process.exit(1);
+                                   gracefullExit();
                               }
                          });
                     });
@@ -182,7 +182,7 @@ function checkGitVersion() {
                                    if (error) {
                                         console.error(`exec error: ${error}`);
                                    } else {
-                                        awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {process.exit(1);});
+                                        awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {gracefullExit();});
                                    }
                               });
                          });
@@ -191,6 +191,15 @@ function checkGitVersion() {
           }
      });
 
+}
+
+function gracefullExit() {
+     debugConsole("Starting a gracefull exit..")
+     // Disconnect GPS
+     connections.listenForGPS.close();
+     // Disconnect awsThing
+     awsThing.unregister();
+     awsThing.end();
 }
 
 function listenForGPS(udpPort, patternEmitter) {
@@ -220,7 +229,6 @@ function listenForGPS(udpPort, patternEmitter) {
 
 // Setup cleanup;
 process.on("beforeExit", function() {
-     connections.listenForGPS.close();
      debugConsole("Exiting...");
 });
 
