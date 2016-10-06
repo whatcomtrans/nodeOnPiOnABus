@@ -220,16 +220,14 @@ function checkGitVersion() {
 }
 
 function sendToDVR(message) {
-     debugConsole("In sendToDVR...")
-     debugConsole(tcpDVR.write(message +  String.fromCharCode(13), "ascii"));
-     debugConsole("Connection status:" + tcpDVR)
+     debugConsole("Send to DVR success: " + tcpDVR.write(message +  String.fromCharCode(13), "ascii"));
 }
 
 function gracefullExit() {
      debugConsole("Starting a gracefull exit..")
      // Disconnect servers
      updGPS.close();
-     tcpDVR.close();
+     tcpDVR.end();
      // Disconnect awsThing
      awsThing.unregister();
      awsThing.end();
