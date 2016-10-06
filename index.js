@@ -88,6 +88,13 @@ function onAwsThing() {
      debugConsole("Creating connection to DVR...");
      tcpDVR = net.createConnection(5067, "192.168.1.129", function(){
           debugConsole("Connection established to DVR");
+          tcpDVR.on("close", function(had_error){
+               if (had_error) {
+                    debugConsole("Connection to DVR closed due to error.")
+               } else {
+                    debugConsole("Connection to DVR closed.")
+               }
+          });
           awsThing.on("GPS.GPRMC.message", function(msg){
                debugConsole("Sending data to DVR");
                sendToDVR(msg);
@@ -213,7 +220,9 @@ function checkGitVersion() {
 }
 
 function sendToDVR(message) {
-     tcpDVR.write(message +  String.fromCharCode(13), "ascii");
+     debugConsole("In sendToDVR...")
+     debugConsole(tcpDVR.write(message +  String.fromCharCode(13), "ascii"));
+     debugConsole("Connection status:" + tcpDVR)
 }
 
 function gracefullExit() {
