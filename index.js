@@ -35,7 +35,7 @@ function debugConsole(msg) {
 var awsClient;
 var awsThing;
 var tcpDVR = null;
-var listenForGPS = null;
+var updGPS = null;
 
 //Settings
 var awsConfig = require("../settings/awsclientconfig.json");
@@ -48,7 +48,7 @@ function onAwsThing() {
      debugConsole("Thing created, running onAwsThing");
 
      // Listen for GPS
-     listenForGPS(awsThing.getProperty("GPSudpPort"), awsThing);
+     updGPS = listenForGPS(awsThing.getProperty("GPSudpPort"), awsThing);
 
      // Verify we are up to date
      checkGitVersion();
@@ -213,8 +213,9 @@ function sendToDVR(message) {
 
 function gracefullExit() {
      debugConsole("Starting a gracefull exit..")
-     // Disconnect GPS
-     listenForGPS.close();
+     // Disconnect servers
+     updGPS.close();
+     tcpDVR.close();
      // Disconnect awsThing
      awsThing.unregister();
      awsThing.end();
@@ -241,7 +242,6 @@ function listenForGPS(udpPort, patternEmitter) {
 	//GPS parsing and emitting
 
 	server.bind(udpPort);
-     listenForGPS = server;
 	return server;
 }
 
