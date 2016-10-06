@@ -85,8 +85,11 @@ function onAwsThing() {
      });
 
      // Update IoT with message string TODO
+     debugConsole("Creating connection to DVR...");
      tcpDVR = net.createConnection(5067, "192.168.1.129", function(){
+          debugConsole("Connection established to DVR");
           awsThing.on("GPS.GPRMC.message", function(msg){
+               debugConsole("Sending data to DVR");
                sendToDVR(msg);
           });
      });
@@ -111,17 +114,19 @@ function onAwsThing() {
                var sentence = nmea.parse(msgString);
                sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
                sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
-               awsThing.emit("GPS.GPRMC.message", mstString);
+               awsThing.emit("GPS.GPRMC.message", msgString);
                awsThing.emit("GPS.GPRMC",sentence);
           }
           if (msgString.indexOf("$GPGSV") > -1) {
                var sentence = nmea.parse(msgString);
+               awsThing.emit("GPS.GPGSV.message", msgString);
                awsThing.emit("GPS.GPGSV",sentence);
           }
           if (msgString.indexOf("$GPGGA") > -1) {
                var sentence = nmea.parse(msgString);
                sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
                sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
+               awsThing.emit("GPS.GPGGA.message", msgString);
                awsThing.emit("GPS.GPGGA",sentence);
           }
           if (msgString.indexOf(">RLN") > -1) {
