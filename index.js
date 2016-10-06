@@ -98,6 +98,7 @@ function onAwsThing() {
                var sentence = nmea.parse(msgString);
                sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
                sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
+		  awsThing.reportProperty("GPSrmc", msgString);
                awsThing.emit("GPS.GPRMC",sentence);
           }
           if (msgString.indexOf("$GPGSV") > -1) {
