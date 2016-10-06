@@ -12,7 +12,7 @@ const nmea = require("nmea");
 const dgram = require("dgram");
 const exec = require('child_process').exec;
 const jsonfile = require('jsonfile');
-//const net = require('net');
+const net = require('net');
 
 /**
  * Turn on and off debug to console
