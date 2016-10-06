@@ -34,7 +34,7 @@ function debugConsole(msg) {
 // IoT variables
 var awsClient;
 var awsThing;
-var connections = new Object();
+var tcpDVR = null;
 
 //Settings
 var awsConfig = require("../settings/awsclientconfig.json");
@@ -83,6 +83,18 @@ function onAwsThing() {
           }
      });
 
+     // Update IoT with message string TODO
+     tcpDVR = net.createConnection(5067, "192.168.1.129", function(){
+          awsThing.on("GPS.GPRMC.message", function(msg){
+               sendToDVR(msg);
+          });
+     });
+
+     // Update IoT with message string TODO
+     awsThing.on("GPS.GPRMC.message", function(msg){
+          awsThing.reportProperty("gpsRMC", msg);
+     });
+
      // Update with GPS info
      awsThing.on("GPS.GPRMC",function(sentence){
           debugConsole("Updating lat/lon");
@@ -98,7 +110,7 @@ function onAwsThing() {
                var sentence = nmea.parse(msgString);
                sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
                sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
-		  awsThing.reportProperty("GPSrmc", msgString);
+               awsThing.emit("GPS.GPRMC.message", mstString);
                awsThing.emit("GPS.GPRMC",sentence);
           }
           if (msgString.indexOf("$GPGSV") > -1) {
@@ -192,6 +204,10 @@ function checkGitVersion() {
           }
      });
 
+}
+
+function sendToDVR(message) {
+     tcpDVR.write(message +  String.fromCharCode(13), "ascii");
 }
 
 function gracefullExit() {
