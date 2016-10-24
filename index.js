@@ -98,7 +98,8 @@ function onAwsThing() {
                     }
                });
                awsThing.on("GPS.GPRMC.message", function(msg){
-                    debugConsole("Sending data to DVR");
+                    debugConsole("Sending data to DVR: " + msg);
+                    awsThing.reportProperty("dvrGPSmsg", msg, true);
                     sendToDVR(msg);
                });
           });
