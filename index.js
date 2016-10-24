@@ -102,6 +102,11 @@ function onAwsThing() {
                     awsThing.reportProperty("dvrGPSmsg", msg, true);
                     sendToDVR(msg);
                });
+               awsThing.on("GPS.GPGLL.message", function(msg){
+                    debugConsole("Sending data to DVR: " + msg);
+                    awsThing.reportProperty("dvrGPSmsg", msg, true);
+                    sendToDVR(msg);
+               });
           });
      }
 
@@ -132,6 +137,11 @@ function onAwsThing() {
                var sentence = nmea.parse(msgString);
                awsThing.emit("GPS.GPGSV.message", msgString);
                awsThing.emit("GPS.GPGSV",sentence);
+          }
+          if (msgString.indexOf("$GPGLL") > -1) {
+               var sentence = nmea.parse(msgString);
+               awsThing.emit("GPS.GPGLL.message", msgString);
+               awsThing.emit("GPS.GPGLL",sentence);
           }
           if (msgString.indexOf("$GPGGA") > -1) {
                var sentence = nmea.parse(msgString);
