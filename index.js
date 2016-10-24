@@ -88,7 +88,7 @@ function onAwsThing() {
      var newDVRs = ["831", "832", "833", "834", "835", "836", "837"];
      if (newDVRs.indexOf(awsThing.getProperty("vehicleId")) > -1 ) {
           debugConsole("Creating connection to DVR...");
-          tcpDVR = net.createConnection(5067, "192.168.1.129", function(){
+          tcpDVR = net.createConnection(5070, "192.168.1.129", function(){
                debugConsole("Connection established to DVR");
                tcpDVR.on("close", function(had_error){
                     if (had_error) {
