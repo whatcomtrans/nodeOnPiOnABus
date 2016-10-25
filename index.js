@@ -102,11 +102,6 @@ function onAwsThing() {
                     awsThing.reportProperty("dvrGPSmsg", msg, true);
                     sendToDVR(msg);
                });
-               awsThing.on("GPS.GPGLL.message", function(msg){
-                    debugConsole("Sending data to DVR: " + msg);
-                    awsThing.reportProperty("dvrGPSmsg", msg, true);
-                    sendToDVR(msg);
-               });
           });
      }
 
@@ -128,8 +123,8 @@ function onAwsThing() {
           debugConsole("Recieved GPS message: " + msgString);
           if (msgString.indexOf("$GPRMC") > -1) {
                var sentence = nmea.parse(msgString);
-               sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
-               sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
+               //sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
+               //sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
                awsThing.emit("GPS.GPRMC.message", msgString);
                awsThing.emit("GPS.GPRMC",sentence);
           }
@@ -145,8 +140,8 @@ function onAwsThing() {
           }
           if (msgString.indexOf("$GPGGA") > -1) {
                var sentence = nmea.parse(msgString);
-               sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
-               sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
+               //sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
+               //sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
                awsThing.emit("GPS.GPGGA.message", msgString);
                awsThing.emit("GPS.GPGGA",sentence);
           }
