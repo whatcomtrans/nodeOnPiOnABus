@@ -28,6 +28,11 @@ var debugOn = true;  // TODO
 function debugConsole(msg) {
      if (debugOn) {
           console.log("DEBUG: " + msg);
+          if (awsThing.getProperty("debugMode") = "mqtt") {
+               if (awsClient.connected) {
+                    awsClient.publish("/vehicles/vehicle" + awsThing.getProperty("vehicleId") + "/console", msg);
+               }
+          }
      }
 }
 
