@@ -281,7 +281,9 @@ function gracefullExit() {
      debugConsole("Starting a gracefull exit..")
      // Disconnect servers
      updGPS.close();
-     tcpDVR.end();
+     if (tcpDVR != null) {
+          tcpDVR.end();
+     }
      // Disconnect awsThing
      awsThing.unregister();
      awsThing.end();
