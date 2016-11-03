@@ -207,7 +207,7 @@ function createThing() {
                     debugConsole("thing created");
                     awsThing.register(function() {
                          debugConsole("thing registered");
-
+                         connected = true;
                          awsThing.retrieveState(function(){
                               var propName;
                               for (propName in settings) {
