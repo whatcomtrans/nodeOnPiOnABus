@@ -82,8 +82,11 @@ function onAwsThing() {
           }
           if (awsThing.getDeltaProperty("debugOutput") != null) {
                debugOutput = awsThing.getDeltaProperty("debugOutput");
-               awsThing.reportProperty("debugOutput", debugOutput);
-               writeSettings();
+               awsThing.reportProperty("debugOutput", debugOutput, false, function() {
+                    awsThing.retrieveState(function () {
+                         writeSettings(true);
+                    });
+               });
           }
      });
 
