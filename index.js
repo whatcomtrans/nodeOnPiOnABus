@@ -69,7 +69,7 @@ function onAwsThing() {
                debugConsole("Updating vehicleId from " + awsThing.getProperty("vehicleId") + " to " + id);
                awsThing.reportProperty("vehicleId", id, false, function() {
                     awsThing.retrieveState(function () {
-                         writeSettings();
+                         writeSettings(true);
                     });
                });
           }
@@ -250,13 +250,18 @@ function sendToDVR(message) {
      debugConsole("Send to DVR success: " + tcpDVR.write(message +  String.fromCharCode(13), "ascii"));
 }
 
-function writeSettings() {
+function writeSettings(restart) {
+     if (restart === undefined) {
+        restart = false;
+    }
      jsonfile.writeFile("../settings/settings.json", awsThing.getReported(), function (err) {
           if (err) {
                console.error(err);
           } else {
-               //exit and Restart
-               gracefullExit();
+               if (restart) {
+                    //exit and Restart
+                    gracefullExit();
+               }
           }
      });
 }
