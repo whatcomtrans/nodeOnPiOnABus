@@ -17,7 +17,7 @@ const net = require('net');
 /**
  * Turn on and off debug to console
  */
-var debugOutput = "consoleMqtt";  // TODO
+var debugOutput = "consoleOnly";  // Adjustable by settings.  consoleOnly | mqttOnly | consoleMqtt | none
 
 // Track status of awsThing connection
 var connected = false;
@@ -47,6 +47,8 @@ function debugConsole(msg) {
                console.log(msg);
                mqttConsole(msg);
                break;
+          case "none":
+               break;
           default:
                // None
                break;
@@ -62,6 +64,9 @@ var updGPS = null;
 //Settings
 var awsConfig = require("../settings/awsclientconfig.json");
 var settings = require("../settings/settings.json");
+if ("debugOutput" in settings) {
+     debugOutput = settings.debugOutput;
+}
 debugConsole("Initial settings: " + JSON.stringify(settings));
 
 // This function is the essense of the rest of the program.
@@ -103,6 +108,10 @@ function onAwsThing() {
      awsThing.on("delta", function(state) {
           if (awsThing.getDeltaProperty("commit") != null) {
                checkGitVersion();
+          }
+          if (awsThing.getDeltaProperty("debugOutput") != null) {
+               debugOutput = awsThing.getDeltaProperty("debugOutput");
+               awsThing.reportProperty("debugOutput", debugOutput);
           }
      });
 
@@ -202,7 +211,9 @@ function createThing() {
                // Create awsThing
                awsClient.thingFactory(thingName, {"persistentSubscribe": true}, false, function(err, thing) {
                     awsThing = thing;
-                    debugConsole("Error: " + err);
+                    if (err) {
+                         debugConsole("Error: " + err);
+                    }
                     debugConsole(JSON.stringify(thing));
                     debugConsole("thing created");
                     awsThing.register(function() {
