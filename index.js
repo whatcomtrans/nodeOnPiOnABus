@@ -22,6 +22,13 @@ var debugOutput = "consoleMqtt";  // TODO
 // Track status of awsThing connection
 var connected = false;
 
+
+function mqttConsole(msg) {
+     if (connected) {
+          awsClient.publish("/vehicles/" + awsThing.thingName + "/console", msg);
+     }
+}
+
 /**
  * //debugConsole - A helper function for debuging to console, or not
  *
@@ -43,12 +50,6 @@ function debugConsole(msg) {
           default:
                // None
                break;
-     }
-}
-
-function mqttConsole(msg) {
-     if (connected) {
-          awsClient.publish("/vehicles/" + awsThing.thingName + "/console", msg);
      }
 }
 
