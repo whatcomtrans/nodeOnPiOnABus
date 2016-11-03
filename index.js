@@ -274,8 +274,8 @@ function gracefullExit() {
           tcpDVR.end();
      }
      // Disconnect awsThing
-     awsThing.unregister();
-     awsThing.end();
+     //awsThing.unregister();
+     //awsThing.end();
 }
 
 function listenForGPS(udpPort, patternEmitter) {
