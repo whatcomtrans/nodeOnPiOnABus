@@ -15,6 +15,9 @@ const jsonfile = require('jsonfile');
 const net = require('net');
 const vm = require('vm');
 
+// TODO FOR DEBUGING LOCALLY ONLY
+var doCheckGitVersion = false;
+
 /**
  * Turn on and off debug to console
  */
@@ -204,42 +207,43 @@ function createThing() {
 
 //
 function checkGitVersion() {
-     exec('git log -1 --format="%H"', (error, stdout, stderr) => {
-          if (error) {
-               console.error(`exec error: ${error}`);
-          } else {
-               debugConsole("Current git commit is: " + stdout.replace(/(\r\n|\n|\r)/gm,""));
-               awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""));
+     if (doCheckGitVersion) {
+          exec('git log -1 --format="%H"', (error, stdout, stderr) => {
+               if (error) {
+                    console.error(`exec error: ${error}`);
+               } else {
+                    debugConsole("Current git commit is: " + stdout.replace(/(\r\n|\n|\r)/gm,""));
+                    awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""));
 
-               // Get notified of the version delta
-               debugConsole("Delta git commit is: " + awsThing.getDeltaProperty("commit"));
-               if (awsThing.getDeltaProperty("commit") != null) {
-                    //change commit
-                    var newCommit = awsThing.getDeltaProperty("commit")
-                    debugConsole ("Need to update the commit to: " + newCommit);
-                    // Call 'git fetch --all'
-                    exec('git fetch --all', (error, stdout, stderr) => {
-                         debugConsole("git error: " + error);
-                         debugConsole("git stdout: " + stdout);
-                         debugConsole("git stderr: " + stderr);
-                         // Call 'git checkout --force "${TARGET}"'
-                         exec('git checkout --force "' + newCommit + '"', (error, stdout, stderr) => {
+                    // Get notified of the version delta
+                    debugConsole("Delta git commit is: " + awsThing.getDeltaProperty("commit"));
+                    if (awsThing.getDeltaProperty("commit") != null) {
+                         //change commit
+                         var newCommit = awsThing.getDeltaProperty("commit")
+                         debugConsole ("Need to update the commit to: " + newCommit);
+                         // Call 'git fetch --all'
+                         exec('git fetch --all', (error, stdout, stderr) => {
                               debugConsole("git error: " + error);
                               debugConsole("git stdout: " + stdout);
                               debugConsole("git stderr: " + stderr);
-                              exec('git log -1 --format="%H"', (error, stdout, stderr) => {
-                                   if (error) {
-                                        console.error(`exec error: ${error}`);
-                                   } else {
-                                        awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {gracefullExit();});
-                                   }
+                              // Call 'git checkout --force "${TARGET}"'
+                              exec('git checkout --force "' + newCommit + '"', (error, stdout, stderr) => {
+                                   debugConsole("git error: " + error);
+                                   debugConsole("git stdout: " + stdout);
+                                   debugConsole("git stderr: " + stderr);
+                                   exec('git log -1 --format="%H"', (error, stdout, stderr) => {
+                                        if (error) {
+                                             console.error(`exec error: ${error}`);
+                                        } else {
+                                             awsThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {gracefullExit();});
+                                        }
+                                   });
                               });
                          });
-                    });
+                    }
                }
-          }
-     });
-
+          });
+     }
 }
 
 function sendToDVR(message) {
