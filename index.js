@@ -52,7 +52,8 @@ function onAwsThing() {
      checkGitVersion();
 
      // Listen for mqttCommands
-     awsClient.on("message", function(topic, message) {
+     awsThing.on("message", function(topic, message) {
+          debugConsole("Recieved on topic " + topic + " message: " + message);
           if (topic == "/vehicles/" + awsThing.thingName + "/commands") {
                mqttCommands(message);
           }
@@ -81,6 +82,7 @@ function onAwsThing() {
                checkGitVersion();
           }
           if (awsThing.getDeltaProperty("debugOutput") != null) {
+               debugOutput("Changing debugOutput to: " + awsThing.getDeltaProperty("debugOutput"));
                debugOutput = awsThing.getDeltaProperty("debugOutput");
                awsThing.reportProperty("debugOutput", debugOutput, false, function() {
                     awsThing.retrieveState(function () {
@@ -171,17 +173,6 @@ function createThing() {
           awsIoTThing.clientFactory(awsConfig, function(err, client) {
                awsClient = client;
 
-               // Handle connectino status changes
-               awsClient.on("connect", function() {
-                    connected = true;
-               });
-               awsClient.on("close", function() {
-                    connected = false;
-               });
-               awsClient.on("offline", function() {
-                    connected = false;
-               });
-
                var thingName = "vehicle" + settings.vehicleId;
                // Create awsThing
                awsClient.thingFactory(thingName, {"persistentSubscribe": true}, false, function(err, thing) {
@@ -191,6 +182,16 @@ function createThing() {
                     }
                     debugConsole(JSON.stringify(thing));
                     debugConsole("thing created");
+                    // Handle connection status changes
+                    awsIoTThing.on("connect", function() {
+                         connected = true;
+                    });
+                    awsIoTThing.on("close", function() {
+                         connected = false;
+                    });
+                    awsIoTThing.on("offline", function() {
+                         connected = false;
+                    });
                     awsThing.register(function() {
                          debugConsole("thing registered");
                          connected = true;
