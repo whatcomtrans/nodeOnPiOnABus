@@ -28,24 +28,27 @@ var connected = false;
  * @param  {type} msg description
  */
 function debugConsole(msg) {
+     msg = "DEBUG: " + msg;
      switch (debugOutput) {
           case "consoleOnly":
-               console.log("DEBUG: " + msg);
+               console.log(msg);
                break;
           case "mqttOnly"
-               if (connected) {
-                    awsClient.publish("/vehicles/vehicle" + awsThing.getProperty("vehicleId") + "/console", msg);
-               }
+               mqttConsole(msg);
                break;
           case "consoleMqtt"
-               console.log("DEBUG: " + msg);
-               if (connected) {
-                    awsClient.publish("/vehicles/vehicle" + awsThing.getProperty("vehicleId") + "/console", msg);
-               }
+               console.log(msg);
+               mqttConsole(msg);
                break;
           default:
                // None
                break;
+     }
+}
+
+function mqttConsole(msg) {
+     if (connected) {
+          awsClient.publish("/vehicles/" + awsThing.thingName + "/console", msg);
      }
 }
 
