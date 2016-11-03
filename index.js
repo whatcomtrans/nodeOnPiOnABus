@@ -40,10 +40,10 @@ function debugConsole(msg) {
           case "consoleOnly":
                console.log(msg);
                break;
-          case "mqttOnly"
+          case "mqttOnly":
                mqttConsole(msg);
                break;
-          case "consoleMqtt"
+          case "consoleMqtt":
                console.log(msg);
                mqttConsole(msg);
                break;
