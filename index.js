@@ -13,6 +13,7 @@ const dgram = require("dgram");
 const exec = require('child_process').exec;
 const jsonfile = require('jsonfile');
 const net = require('net');
+const vm = require('vm');
 
 /**
  * Turn on and off debug to console
@@ -21,39 +22,6 @@ var debugOutput = "consoleOnly";  // Adjustable by settings.  consoleOnly | mqtt
 
 // Track status of awsThing connection
 var connected = false;
-
-
-function mqttConsole(msg) {
-     if (connected) {
-          awsClient.publish("/vehicles/" + awsThing.thingName + "/console", msg);
-     }
-}
-
-/**
- * //debugConsole - A helper function for debuging to console, or not
- *
- * @param  {type} msg description
- */
-function debugConsole(msg) {
-     msg = "DEBUG: " + msg;
-     switch (debugOutput) {
-          case "consoleOnly":
-               console.log(msg);
-               break;
-          case "mqttOnly":
-               mqttConsole(msg);
-               break;
-          case "consoleMqtt":
-               console.log(msg);
-               mqttConsole(msg);
-               break;
-          case "none":
-               break;
-          default:
-               // None
-               break;
-     }
-}
 
 // IoT variables
 var awsClient;
@@ -80,6 +48,13 @@ function onAwsThing() {
      // Verify we are up to date
      checkGitVersion();
 
+     // Listen for mqttCommands
+     awsClient.on("message", function(topic, message) {
+          if (topic == "/vehicles/" + awsThing.thingName + "/commands") {
+               mqttCommands(message);
+          }
+     });
+
      awsThing.on("GPS.RLN.message", function(msgString) {
           awsClient.publish("/vehicles/GPS.RLN.message", msgString);
      });
@@ -91,14 +66,7 @@ function onAwsThing() {
                debugConsole("Updating vehicleId from " + awsThing.getProperty("vehicleId") + " to " + id);
                awsThing.reportProperty("vehicleId", id, false, function() {
                     awsThing.retrieveState(function () {
-                         jsonfile.writeFile("../settings/settings.json", awsThing.getReported(), function (err) {
-                              if (err) {
-                                   console.error(err);
-                              } else {
-                                   //exit and Restart
-                                   gracefullExit();
-                              }
-                         });
+                         writeSettings();
                     });
                });
           }
@@ -112,6 +80,7 @@ function onAwsThing() {
           if (awsThing.getDeltaProperty("debugOutput") != null) {
                debugOutput = awsThing.getDeltaProperty("debugOutput");
                awsThing.reportProperty("debugOutput", debugOutput);
+               writeSettings();
           }
      });
 
@@ -277,6 +246,17 @@ function sendToDVR(message) {
      debugConsole("Send to DVR success: " + tcpDVR.write(message +  String.fromCharCode(13), "ascii"));
 }
 
+function writeSettings() {
+     jsonfile.writeFile("../settings/settings.json", awsThing.getReported(), function (err) {
+          if (err) {
+               console.error(err);
+          } else {
+               //exit and Restart
+               gracefullExit();
+          }
+     });
+}
+
 function gracefullExit() {
      debugConsole("Starting a gracefull exit..")
      // Disconnect servers
@@ -317,6 +297,44 @@ function listenForGPS(udpPort, patternEmitter) {
 process.on("beforeExit", function() {
      debugConsole("Exiting...");
 });
+
+function mqttConsole(msg) {
+     if (connected) {
+          awsClient.publish("/vehicles/" + awsThing.thingName + "/console", msg);
+     }
+}
+
+/**
+ * //debugConsole - A helper function for debuging to console, or not
+ *
+ * @param  {type} msg description
+ */
+function debugConsole(msg) {
+     msg = "DEBUG: " + msg;
+     switch (debugOutput) {
+          case "consoleOnly":
+               console.log(msg);
+               break;
+          case "mqttOnly":
+               mqttConsole(msg);
+               break;
+          case "consoleMqtt":
+               console.log(msg);
+               mqttConsole(msg);
+               break;
+          case "none":
+               break;
+          default:
+               // None
+               break;
+     }
+}
+
+function mqttCommands(message) {
+     // This runs JavaScript commands received via mqtt
+     // TODO - validation?
+     mqttConsole(vm.runInThisContext(message, {"displayErrors": true, "timeout": 300}));
+}
 
 // Ok, lets get this started
 debugConsole("Lets get started");
