@@ -17,22 +17,35 @@ const net = require('net');
 /**
  * Turn on and off debug to console
  */
-var debugOn = true;  // TODO
+var debugOutput = "consoleMqtt";  // TODO
+
+// Track status of awsThing connection
+var connected = false;
 
 /**
  * //debugConsole - A helper function for debuging to console, or not
  *
  * @param  {type} msg description
- * @return {type}     description
  */
 function debugConsole(msg) {
-     if (debugOn) {
-          console.log("DEBUG: " + msg);
-          if (awsClient.connected) {
-               if (awsThing.getProperty("debugMode") = "mqtt") {
+     switch (debugOutput) {
+          case "consoleOnly":
+               console.log("DEBUG: " + msg);
+               break;
+          case "mqttOnly"
+               if (connected) {
                     awsClient.publish("/vehicles/vehicle" + awsThing.getProperty("vehicleId") + "/console", msg);
                }
-          }
+               break;
+          case "consoleMqtt"
+               console.log("DEBUG: " + msg);
+               if (connected) {
+                    awsClient.publish("/vehicles/vehicle" + awsThing.getProperty("vehicleId") + "/console", msg);
+               }
+               break;
+          default:
+               // None
+               break;
      }
 }
 
@@ -156,7 +169,6 @@ function onAwsThing() {
           //SAMPLE RLN MESSAGE:
           //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
      });
-
 }
 
 function createThing() {
@@ -170,6 +182,18 @@ function createThing() {
           debugConsole("Creating awsClient with clientId of " + awsConfig.clientId);
           awsIoTThing.clientFactory(awsConfig, function(err, client) {
                awsClient = client;
+
+               // Handle connectino status changes
+               awsClient.on("connect", function() {
+                    connected = true;
+               });
+               awsClient.on("close", function() {
+                    connected = false;
+               });
+               awsClient.on("offline", function() {
+                    connected = false;
+               });
+
                var thingName = "vehicle" + settings.vehicleId;
                // Create awsThing
                awsClient.thingFactory(thingName, {"persistentSubscribe": true}, false, function(err, thing) {
@@ -179,6 +203,7 @@ function createThing() {
                     debugConsole("thing created");
                     awsThing.register(function() {
                          debugConsole("thing registered");
+
                          awsThing.retrieveState(function(){
                               var propName;
                               for (propName in settings) {
