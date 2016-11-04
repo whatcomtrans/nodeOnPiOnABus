@@ -68,29 +68,46 @@ function mockMQTTClient( wrapper, options ) {
 		callback = callback || '';
 		this.commandCalled['subscribe'] += 1;
 
+                var granted = [];
                 if ( Object.prototype.toString.call(topic) === '[object Array]' ) {
                    topic.forEach( function( item, index, array ) {
+                      var grantedTopic = {topic: item, qos: 0}
                       that.subscriptions.push( item );
                       if (!isUndefined( options.qos )) {
                          that.subscribeQosValues.push( options.qos );
+                         grantedTopic.qos = options.qos;
                       }
+
+                      if (mockMQTTClient.triggerError()) {
+                         grantedTopic.qos = 128;
+                      }
+
+                      granted.push(grantedTopic);
                    });
                 }
                 else {
+                   var grantedTopic = {topic: topic, qos: 0}
                    this.subscriptions.push( topic );
                       if (!isUndefined( options.qos )) {
                          that.subscribeQosValues.push( options.qos );
+                         grantedTopic.qos = options.qos;
                       }
+                      if (mockMQTTClient.triggerError()) {
+                         grantedTopic.qos = 128;
+                      }
+                      granted.push(grantedTopic);
                 }
 		if(callback !== '') {
-			callback(null); // call callback
+			callback(null, granted); // call callback
 		}
     };
 
-    this.unsubscribe = function(topic, options, callback) {
-		options = options || '';
+    this.unsubscribe = function(topic, callback) {
 		callback = callback || '';
 		this.commandCalled['unsubscribe'] += 1;
+		if (callback !== '') {
+			callback(null); // call callback
+		}
     };
 
     this.end = function(force, cb) {
@@ -107,4 +124,9 @@ function mockMQTTClient( wrapper, options ) {
 }
 
 util.inherits(mockMQTTClient, EventEmitter);
+
+mockMQTTClient.triggerError = function() {
+  return false;
+};
+
 module.exports = mockMQTTClient;

@@ -131,18 +131,19 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
    //
    // Private function to subscribe and unsubscribe from topics.
    //
-   this._handleSubscriptions = function(thingName, operations,
-      statii, devFunction, callback) {
+   this._handleSubscriptions = function(thingName, topicSpecs, devFunction, callback) {
       var topics = [];
 
       //
       // Build an array of topic names.
       //
-      for (var i = 0, k = 0, opsLen = operations.length; i < opsLen; i++) {
-         for (var j = 0, statLen = statii.length; j < statLen; j++) {
-            topics[k++] = buildThingShadowTopic(thingName,
-               operations[i],
-               statii[j]);
+      for (var i = 0, topicsLen = topicSpecs.length; i < topicsLen; i++) {
+         for (var j = 0, opsLen = topicSpecs[i].operations.length; j < opsLen; j++) {
+            for (var k = 0, statLen = topicSpecs[i].statii.length; k < statLen; k++) {
+               topics.push(buildThingShadowTopic(thingName,
+                  topicSpecs[i].operations[j],
+                  topicSpecs[i].statii[k]));
+            }
          }
       }
 
@@ -151,16 +152,50 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
       }
       //
       // Subscribe/unsubscribe from the topics and perform callback when complete.
-      //      
-      if (!isUndefined(callback)) {
-         device[devFunction](topics, {
-            qos: thingShadows[thingName].qos
-         }, callback);
-      } else {
-         device[devFunction](topics, {
+      //
+      var args = [];
+      args.push(topics);
+      if (devFunction === 'subscribe') {
+         // QoS only applicable for subscribe
+         args.push({
             qos: thingShadows[thingName].qos
          });
+         // add our callback to check the SUBACK response for granted subscriptions
+         args.push(function(err, granted) {
+            if (!isUndefined(callback)) {
+               if (err) {
+                  callback(err);
+                  return;
+               }
+               //
+               // Check to see if we got all topic subscriptions granted.
+               //
+               var failedTopics = [];
+               for (var k = 0, grantedLen = granted.length; k < grantedLen; k++) {
+                  //
+                  // 128 is 0x80 - Failure from the MQTT lib.
+                  //
+                  if (granted[k].qos === 128) {
+                     failedTopics.push(granted[k]);
+                  }
+               }
+
+               if (failedTopics.length > 0) {
+                  callback('Not all subscriptions were granted', failedTopics);
+                  return;
+               }
+
+               // all subscriptions were granted
+               callback();
+            }
+         });
+      } else {
+         if (!isUndefined(callback)) {
+            args.push(callback);
+         }
       }
+
+      device[devFunction].apply(device, args);
    };
 
    //
@@ -231,11 +266,12 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
       // only accepted/rejected messages past this point
       // ===============================================
       // If this is an unkown clientToken (e.g., it doesn't have a corresponding
-      // property in the timeouts list), the shadow has been modified by another
-      // client.  If it's an update/accepted or delete/accepted, update the
-      // shadow and notify the client.
+      // client token property, the shadow has been modified by another client.
+      // If it's an update/accepted or delete/accepted, update the shadow and
+      // notify the client.
       //
-      if (isUndefined(thingShadows[thingName].timeouts[clientToken])) {
+      if (isUndefined(thingShadows[thingName].clientToken) ||
+         thingShadows[thingName].clientToken !== clientToken) {
          if ((operationStatus === 'accepted') && (operation !== 'get')) {
             //
             // This is a foreign update or delete accepted, update our
@@ -251,9 +287,13 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
       // all sub-topics.
       //
       clearTimeout(
-         thingShadows[thingName].timeouts[clientToken]);
+         thingShadows[thingName].timeout);
 
-      delete thingShadows[thingName].timeouts[clientToken];
+      delete thingShadows[thingName].timeout;
+      //
+      // Delete the operation's client token.
+      //
+      delete thingShadows[thingName].clientToken;
       //
       // Mark this operation as complete.
       //
@@ -264,8 +304,10 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
       // persistently subscribed to this thing shadow.
       //
       if (thingShadows[thingName].persistentSubscribe === false) {
-         this._handleSubscriptions(thingName, [operation], ['accepted', 'rejected'],
-            'unsubscribe');
+         this._handleSubscriptions(thingName, [{
+            operations: [operation],
+            statii: ['accepted', 'rejected']
+         }], 'unsubscribe');
       }
 
       //
@@ -350,10 +392,25 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
             var clientToken;
 
             if (isUndefined(stateObject.clientToken)) {
-               clientToken = deviceOptions.clientId + '-' + operationCount++;
+               //
+               // AWS IoT restricts client tokens to 64 bytes, so use only the last 48
+               // characters of the client ID when constructing a client token.
+               //
+               var clientIdLength = deviceOptions.clientId.length;
+
+               if (clientIdLength > 48) {
+                  clientToken = deviceOptions.clientId.substr(clientIdLength - 48) + '-' + operationCount++;
+               } else {
+                  clientToken = deviceOptions.clientId + '-' + operationCount++;
+               }
             } else {
                clientToken = stateObject.clientToken;
             }
+            //
+            // Remember the client token for this operation; it will be
+            // deleted when the operation completes or times out.
+            //
+            thingShadows[thingName].clientToken = clientToken;
 
             var publishTopic = buildThingShadowTopic(thingName,
                operation);
@@ -362,15 +419,17 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
             // operation and set a timeout beyond which they will be unsubscribed if 
             // no messages have been received for either of them.
             //
-            thingShadows[thingName].timeouts[clientToken] = setTimeout(
+            thingShadows[thingName].timeout = setTimeout(
                function(thingName, clientToken) {
                   //
                   // Timed-out.  Unsubscribe from the 'accepted' and 'rejected' sub-topics unless
                   // we are persistently subscribing to this thing shadow.
                   //
                   if (thingShadows[thingName].persistentSubscribe === false) {
-                     that._handleSubscriptions(thingName, [operation], ['accepted', 'rejected'],
-                        'unsubscribe');
+                     that._handleSubscriptions(thingName, [{
+                        operations: [operation],
+                        statii: ['accepted', 'rejected']
+                     }], 'unsubscribe');
                   }
                   //
                   // Mark this operation as complete.
@@ -383,9 +442,10 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
                   //
                   that.emit('timeout', thingName, clientToken);
                   //
-                  // Delete the timeout handle for this thingName/clientToken combination.
+                  // Delete the timeout handle and client token for this thingName.
                   //
-                  delete thingShadows[thingName].timeouts[clientToken];
+                  delete thingShadows[thingName].timeout;
+                  delete thingShadows[thingName].clientToken;
                }, operationTimeout,
                thingName, clientToken);
             //
@@ -394,18 +454,20 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
             // since we are already subscribed to all applicable sub-topics.
             //
             if (thingShadows[thingName].persistentSubscribe === false) {
-               this._handleSubscriptions(thingName, [operation], ['accepted', 'rejected'],
-                  'subscribe',
-                  function(err) {
-                     //
-                     // If 'stateObject' is defined, publish it to the publish topic for this
-                     // thingName+operation.
-                     //
-                     if (err !== null) {
+               this._handleSubscriptions(thingName, [{
+                     operations: [operation],
+                     statii: ['accepted', 'rejected'],
+                  }], 'subscribe',
+                  function(err, failedTopics) {
+                     if (!isUndefined(err) || !isUndefined(failedTopics)) {
                         console.warn('failed subscription to accepted/rejected topics');
                         return;
                      }
 
+                     //
+                     // If 'stateObject' is defined, publish it to the publish topic for this
+                     // thingName+operation.
+                     //
                      if (!isUndefined(stateObject)) {
                         //
                         // Add the version # (if known and versioning is enabled) and 
@@ -462,7 +524,7 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
       return rc;
    };
 
-   this.register = function(thingName, options) {
+   this.register = function(thingName, options, callback) {
       if (!thingShadows.hasOwnProperty(thingName)) {
          //
          // Initialize the registration entry for this thing; because the version # is 
@@ -470,14 +532,14 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
          // property will be added after the first accepted update from AWS IoT.
          //
          var ignoreDeltas = false;
+         var topicSpecs = [];
          thingShadows[thingName] = {
-            timeouts: {},
             persistentSubscribe: true,
             debug: false,
             discardStale: true,
             enableVersioning: true,
             qos: 0,
-            pending: false
+            pending: true
          };
 
          if (!isUndefined(options)) {
@@ -504,8 +566,10 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
          // Always listen for deltas unless requested otherwise.
          //
          if (ignoreDeltas === false) {
-            this._handleSubscriptions(thingName, ['update'], ['delta'],
-               'subscribe');
+            topicSpecs.push({
+               operations: ['update'],
+               statii: ['delta']
+            });
          }
          //
          // If we are persistently subscribing, we subscribe to everything we could ever
@@ -514,9 +578,28 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
          // which the application will need to filter out.
          //
          if (thingShadows[thingName].persistentSubscribe === true) {
-            this._handleSubscriptions(thingName, ['update', 'get', 'delete'], ['accepted', 'rejected'],
-               'subscribe');
+            topicSpecs.push({
+               operations: ['update', 'get', 'delete'],
+               statii: ['accepted', 'rejected']
+            });
          }
+
+         if (topicSpecs.length > 0) {
+            this._handleSubscriptions(thingName, topicSpecs, 'subscribe', function(err, failedTopics) {
+               if (isUndefined(err) && isUndefined(failedTopics)) {
+                  thingShadows[thingName].pending = false;
+               }
+               if (!isUndefined(callback)) {
+                  callback(err, failedTopics);
+               }
+            });
+         } else {
+            thingShadows[thingName].pending = false;
+            if (!isUndefined(callback)) {
+               callback();
+            }
+         }
+
       } else {
          if (deviceOptions.debug === true) {
             console.error('thing already registered: ', thingName);
@@ -526,6 +609,8 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
 
    this.unregister = function(thingName) {
       if (thingShadows.hasOwnProperty(thingName)) {
+         var topicSpecs = [];
+
          //
          // If an operation is outstanding, it will have a timeout set; when it
          // expires any accept/reject sub-topic subscriptions for the thing will be 
@@ -534,24 +619,29 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
          // The only sub-topic we need to unsubscribe from is the delta sub-topic,
          // which is always active.
          //
-         this._handleSubscriptions(thingName, ['update'], ['delta'],
-            'unsubscribe');
+         topicSpecs.push({
+            operations: ['update'],
+            statii: ['delta']
+         });
          //
          // If we are persistently subscribing, we subscribe to everything we could ever
          // possibly be interested in; this means that when it's time to unregister
          // interest in a thing, we need to unsubscribe from all of these topics.
          //
          if (thingShadows[thingName].persistentSubscribe === true) {
-            this._handleSubscriptions(thingName, ['update', 'get', 'delete'], ['accepted', 'rejected'],
-               'unsubscribe');
+            topicSpecs.push({
+               operations: ['update', 'get', 'delete'],
+               statii: ['accepted', 'rejected']
+            });
          }
+
+         this._handleSubscriptions(thingName, topicSpecs, 'unsubscribe');
+
          //
-         // Delete any pending timeouts
+         // Delete any pending timeout
          //
-         for (var timeout in thingShadows[thingName].timeouts) {
-            if (thingShadows[thingName].timeouts.hasOwnProperty(timeout)) {
-               clearTimeout(thingShadows[thingName].timeouts[timeout]);
-            }
+         if (!isUndefined(thingShadows[thingName].timeout)) {
+            clearTimeout(thingShadows[thingName].timeout);
          }
          //
          // Delete the thing from the Thing registrations.
@@ -628,9 +718,9 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
    //
    // Unsubscribe from non-thing topics.
    //
-   this.unsubscribe = function(topic, options, callback) {
+   this.unsubscribe = function(topic, callback) {
       if (!isReservedTopic(topic)) {
-         device.unsubscribe(topic, options, callback);
+         device.unsubscribe(topic, callback);
       } else {
          throw ('cannot unsubscribe from reserved topic \'' + topic + '\'');
       }

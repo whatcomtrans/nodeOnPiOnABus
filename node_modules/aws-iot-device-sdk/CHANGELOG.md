@@ -1,3 +1,11 @@
+## [1.0.13](https://github.com/aws/aws-iot-device-sdk-js/releases/tag/v1.0.13) (July 11, 2016)
+
+Bugfixes/Improvements
+  - Addressed pull request[#83](https://github.com/aws/aws-iot-device-sdk-js/pull/83) Credits given to [Torsph](https://github.com/Torsph)
+  - Updated lifecycle events browser demo to read from DynamoDB table of connected clients if available
+  - Addresses pull request [#60](https://github.com/aws/aws-iot-device-sdk-js/pull/60)
+  - Fixes for GitHub issues [#66](https://github.com/aws/aws-iot-device-sdk-js/issues/66), [#61](https://github.com/aws/aws-iot-device-sdk-js/issues/61), [#53](https://github.com/aws/aws-iot-device-sdk-js/issues/53), [#48](https://github.com/aws/aws-iot-device-sdk-js/issues/48), and [#44](https://github.com/aws/aws-iot-device-sdk-js/issues/44).
+
 ## [1.0.12](https://github.com/aws/aws-iot-device-sdk-js/releases/tag/v1.0.12) (April 19, 2016)
 
 Features

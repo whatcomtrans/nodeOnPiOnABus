@@ -69,12 +69,80 @@ describe( "thing shadow class unit tests", function() {
       });
    });
 
+   describe( "register a thing shadow name", function() {
+//
+// Verify that the thing shadow invokes the register callback when subscription to all
+// topics are finished. The callback is invoked based on the callback from the mqtt library.
+//
+
+      var thingShadowsConfig = {
+         keyPath: 'test/data/private.pem.key',
+         certPath: 'test/data/certificate.pem.crt',
+         caPath: 'test/data/root-CA.crt',
+         clientId: 'dummy-client-1',
+         region: 'us-east-1'
+      };
+
+      it("should trigger error when a subscription fails", function () {
+
+        var stubTriggerError = sinon.stub(mockMQTTClient, 'triggerError', function(){return true;});
+
+        var thingShadows = thingShadow(thingShadowsConfig);
+        thingShadows.register('testShadow1', { ignoreDeltas: true, persistentSubscribe: true }, function (err, granted) {
+          assert.notEqual(err, null);
+          for (var k = 0, grantedLen = granted.length; k < grantedLen; k++) {
+            //
+            // 128 is 0x80 - Failure from the MQTT lib.
+            //
+            assert.equal(granted[k].qos, 128);
+            stubTriggerError.restore();
+          }
+        });
+        var thisToken = thingShadows.update('testShadow1', {}); // update will fail as register is still pending
+        assert.equal(thisToken, null);
+      });
+
+      it("should trigger callback when ignoreDeltas is true and persistentSubscribe is true", function() {
+            var thingShadows = thingShadow( thingShadowsConfig );
+            var fakeCallback = sinon.spy();
+            thingShadows.register( 'testShadow1', {ignoreDeltas:true, persistentSubscribe:true}, fakeCallback);
+
+            assert(fakeCallback.calledOnce);
+      });
+
+      it("should trigger callback when ignoreDeltas is false and persistentSubscribe is false", function() {
+            var thingShadows = thingShadow( thingShadowsConfig );
+            var fakeCallback = sinon.spy();
+            thingShadows.register( 'testShadow1', {ignoreDeltas:false, persistentSubscribe:false}, fakeCallback);
+
+            assert(fakeCallback.calledOnce);
+      });
+
+      it("should trigger callback when ignoreDeltas is true and persistentSubscribe is false", function() {
+            var thingShadows = thingShadow( thingShadowsConfig );
+            var fakeCallback = sinon.spy();
+            thingShadows.register( 'testShadow1', {ignoreDeltas:true, persistentSubscribe:false}, fakeCallback);
+
+            assert(fakeCallback.calledOnce);
+      });
+
+      it("should trigger callback when ignoreDeltas is false and persistentSubscribe is true", function() {
+            var thingShadows = thingShadow( thingShadowsConfig );
+            var fakeCallback = sinon.spy();
+            thingShadows.register( 'testShadow1', {ignoreDeltas:false, persistentSubscribe:true}, fakeCallback);
+
+            assert(fakeCallback.calledOnce);
+      });
+   });
+
    describe( "subscribe to/unsubscribe from a non-thing topic", function() {
 //
 // Verify that the thing shadow module does not throw an exception
 // when we subscribe to and unsubscribe from a non-thing topic.
 //
       it("does not throw an exception", function() { 
+         var fakeCallback1 = sinon.spy();
+         var fakeCallback2 = sinon.spy();
          assert.doesNotThrow( function( err ) { 
             var thingShadows = thingShadow( { 
                keyPath:'test/data/private.pem.key', 
@@ -83,10 +151,12 @@ describe( "thing shadow class unit tests", function() {
                clientId:'dummy-client-1',
                region:'us-east-1'
                } );
-               thingShadows.subscribe( 'nonThingTopic1' );
-               thingShadows.unsubscribe( 'nonThingTopic1' );
+               thingShadows.subscribe('nonThingTopic1', {}, fakeCallback1);
+               thingShadows.unsubscribe('nonThingTopic1', fakeCallback2);
             }, function(err) { console.log('\t['+err+']'); return true;}
-            ); 
+         ); 
+         assert(fakeCallback1.calledOnce);
+         assert(fakeCallback2.calledOnce);
       });
    });
 
@@ -211,10 +281,10 @@ describe( "thing shadow class unit tests", function() {
           } );
           // Register a thing, using default delta settings
           thingShadows.register('testShadow1');
-          assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 2); // Called twice, one for delta, one for GUD
+          assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 1); // Called once for GUD + Delta
           mockMQTTClientObject.reInitCommandCalled();
           thingShadows.unregister('testShadow1');
-          assert.equal(mockMQTTClientObject.commandCalled['unsubscribe'], 2);
+          assert.equal(mockMQTTClientObject.commandCalled['unsubscribe'], 1);
     	});
     });
 
@@ -244,7 +314,7 @@ describe( "thing shadow class unit tests", function() {
           assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 1); // Called once, for GUD
           mockMQTTClientObject.reInitCommandCalled();
           thingShadows.unregister('testShadow1');
-          assert.equal(mockMQTTClientObject.commandCalled['unsubscribe'], 2); // Called twice, unsub from ALL
+          assert.equal(mockMQTTClientObject.commandCalled['unsubscribe'], 1); // Called once for all
       });
     });
 
@@ -828,6 +898,40 @@ describe( "thing shadow class unit tests", function() {
           assert.equal(mockMQTTClientObject.commandCalled['unsubscribe'], 0); // Never unsub
           // Unregister it
           thingShadows.unregister('testShadow4');
+      });
+    });
+
+//
+// Verify that update fails if subscriptions are not granted
+//
+    describe("Verify that update fails if subscriptions are not granted", function() {
+      it("should fail if subscriptions fail", function() {
+          // Reinit mockMQTTClientObject
+          mockMQTTClientObject.reInitCommandCalled();
+          mockMQTTClientObject.resetPublishedMessage();
+          // Init thingShadowClient
+          var thingShadows = thingShadow( {
+            keyPath:'test/data/private.pem.key',
+            certPath:'test/data/certificate.pem.crt',
+            caPath:'test/data/root-CA.crt',
+            clientId:'dummy-client-1',
+            region:'us-east-1'
+          });
+          // Register a thing
+          thingShadows.register('testShadow4', {persistentSubscribe:false});
+          // Generate fake payload
+          myPayload = '{"state":{"desired":{"color":"RED"},"reported":{"color":"BLUE"}},"clientToken":"CoolToken1"}';
+          myStateObject = JSON.parse(myPayload);
+          // cause subscribe error on update (we subscribe because we have elected to not be persistently subscribed)
+          var stubTriggerError = sinon.stub(mockMQTTClient, 'triggerError', function(){return true;});
+          // Update
+          thingShadows.update('testShadow4', myStateObject);
+          // Publish will not be called (error before updating state)
+          assert.equal(mockMQTTClientObject.commandCalled['publish'], 0);
+          // Unregister it
+          thingShadows.unregister('testShadow4');
+          // restore successful publishing
+          stubTriggerError.restore();
       });
     });
 

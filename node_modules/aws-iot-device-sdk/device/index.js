@@ -146,8 +146,15 @@ function prepareWebSocketUrl(options, awsAccessId, awsSecretKey, awsSTSToken) {
       '&X-Amz-Credential=' + awsAccessId + '%2F' + today + '%2F' + options.region + '%2F' + awsServiceName + '%2Faws4_request' +
       '&X-Amz-Date=' + now +
       '&X-Amz-SignedHeaders=host';
+   var hostName = options.host;
 
-   return signUrl('GET', 'wss://', options.host, path, queryParams,
+   // Include the port number in the hostname if it's not 
+   // the standard wss port (443).
+   //
+   if (!isUndefined(options.port) && options.port !== 443) {
+      hostName = options.host + ':' + options.port;
+   }
+   return signUrl('GET', 'wss://', hostName, path, queryParams,
       awsAccessId, awsSecretKey, options.region, awsServiceName, '', today, now, options.debug, awsSTSToken);
 }
 //
@@ -218,13 +225,21 @@ function DeviceClient(options) {
    //    
 
    //
-   // Operation cache used during filling
+   // Publish cache used during filling
    //
-   var offlineOperations = [];
+   var offlinePublishQueue = [];
    var offlineQueueing = true;
    var offlineQueueMaxSize = 0;
    var offlineQueueDropBehavior = 'oldest'; // oldest or newest
-   offlineOperations.length = 0;
+   offlinePublishQueue.length = 0;
+
+   //
+   // Subscription queue for subscribe/unsubscribe requests received when offline
+   // We do not want an unbounded queue so for now limit to current max subs in AWS IoT
+   //
+   var offlineSubscriptionQueue = [];
+   var offlineSubscriptionQueueMaxSize = 50;
+   offlineSubscriptionQueue.length = 0;
 
    //
    // Subscription cache; active if autoResubscribe === true
@@ -410,9 +425,10 @@ function DeviceClient(options) {
       }
       // check websocketOptions and ensure that the protocol is defined
       if (isUndefined(options.websocketOptions)) {
-         options.websocketOptions = { protocol: 'mqttv3.1' };
-      }
-      else {
+         options.websocketOptions = {
+            protocol: 'mqttv3.1'
+         };
+      } else {
          options.websocketOptions.protocol = 'mqttv3.1';
       }
    }
@@ -427,7 +443,7 @@ function DeviceClient(options) {
    protocols.mqtts = require('./lib/tls');
    protocols.wss = require('./lib/ws');
 
-   function _addToSubscriptionCache(topic, options, callback) {
+   function _addToSubscriptionCache(topic, options) {
       var matches = activeSubscriptions.filter(function(element) {
          return element.topic === topic;
       });
@@ -437,20 +453,19 @@ function DeviceClient(options) {
       if (matches.length === 0) {
          activeSubscriptions.push({
             topic: topic,
-            options: options,
-            callback: callback
+            options: options
          });
       }
    }
 
-   function _deleteFromSubscriptionCache(topic, options, callback) {
+   function _deleteFromSubscriptionCache(topic, options) {
       var remaining = activeSubscriptions.filter(function(element) {
          return element.topic !== topic;
       });
       activeSubscriptions = remaining;
    }
 
-   function _updateSubscriptionCache(operation, topics, options, callback) {
+   function _updateSubscriptionCache(operation, topics, options) {
       var opFunc = null;
 
       //
@@ -469,10 +484,10 @@ function DeviceClient(options) {
       //
       if (Object.prototype.toString.call(topics) === '[object Array]') {
          topics.forEach(function(item, index, array) {
-            opFunc(item, options, callback);
+            opFunc(item, options);
          });
       } else {
-         opFunc(topics, options, callback);
+         opFunc(topics, options);
       }
    }
 
@@ -527,17 +542,17 @@ function DeviceClient(options) {
    // Trim the offline queue if required; returns true if another
    // element can be placed in the queue
    //
-   function _trimOfflineQueueIfNecessary() {
+   function _trimOfflinePublishQueueIfNecessary() {
       var rc = true;
 
       if ((offlineQueueMaxSize > 0) &&
-         (offlineOperations.length >= offlineQueueMaxSize)) {
+         (offlinePublishQueue.length >= offlineQueueMaxSize)) {
          //
          // The queue has reached its maximum size, trim it
          // according to the defined drop behavior.
          //
          if (offlineQueueDropBehavior === 'oldest') {
-            offlineOperations.shift();
+            offlinePublishQueue.shift();
          } else {
             rc = false;
          }
@@ -560,35 +575,55 @@ function DeviceClient(options) {
       var subscription = clonedSubscriptions.shift();
 
       if (!isUndefined(subscription)) {
-         device.subscribe(subscription.topic,
-            subscription.options,
-            subscription.callback);
+         //
+         // If the 3rd argument (namely callback) is not present, we will
+         // use two-argument form to call mqtt.Client#subscribe(), which
+         // supports both subscribe(topics, options) and subscribe(topics, callback).
+         //
+         if (!isUndefined(subscription.callback)) {
+            device.subscribe(subscription.topic, subscription.options, subscription.callback);
+         } else {
+            device.subscribe(subscription.topic, subscription.options);
+         }
       } else {
          //
-         // Then handle cached operations...
-         // 
-         var operation = offlineOperations.shift();
+         // If no remaining active subscriptions to process,
+         // then handle subscription requests queued while offline.
+         //
+         var req = offlineSubscriptionQueue.shift();
 
-         if (!isUndefined(operation)) {
-            switch (operation.type) {
-               case 'publish':
-                  device.publish(operation.topic,
-                     operation.message,
-                     operation.options,
-                     operation.callback);
-                  break;
-               default:
-                  console.log('unrecognized operation \'' + operation + '\' during draining!');
-                  break;
+         if (!isUndefined(req)) {
+            _updateSubscriptionCache(req.type, req.topics, req.options);
+            if (req.type === 'subscribe') {
+               if (!isUndefined(req.callback)) {
+                  device.subscribe(req.topics, req.options, req.callback);
+               } else {
+                  device.subscribe(req.topics, req.options);
+               }
+            } else if (req.type === 'unsubscribe') {
+               device.unsubscribe(req.topics, req.callback);
             }
-         }
-         if (offlineOperations.length === 0) {
+         } else {
             //
-            // The subscription and operation queues are fully drained, 
-            // cancel the draining timer.
+            // If no active or queued subscriptions remaining to process,
+            // then handle queued publish operations.
             //
-            clearInterval(drainingTimer);
-            drainingTimer = null;
+            var offlinePublishMessage = offlinePublishQueue.shift();
+
+            if (!isUndefined(offlinePublishMessage)) {
+               device.publish(offlinePublishMessage.topic,
+                  offlinePublishMessage.message,
+                  offlinePublishMessage.options,
+                  offlinePublishMessage.callback);
+            }
+            if (offlinePublishQueue.length === 0) {
+               //
+               // The subscription and offlinePublishQueue queues are fully drained,
+               // cancel the draining timer.
+               //
+               clearInterval(drainingTimer);
+               drainingTimer = null;
+            }
          }
       }
    }
@@ -669,9 +704,8 @@ function DeviceClient(options) {
       // immediately.
       //
       if (offlineQueueing === true && (_filling() || drainingTimer !== null)) {
-         if (_trimOfflineQueueIfNecessary()) {
-            offlineOperations.push({
-               type: 'publish',
+         if (_trimOfflinePublishQueueIfNecessary()) {
+            offlinePublishQueue.push({
                topic: topic,
                message: message,
                options: options,
@@ -685,15 +719,46 @@ function DeviceClient(options) {
       }
    };
    this.subscribe = function(topics, options, callback) {
-      _updateSubscriptionCache('subscribe', topics, options, callback);
       if (!_filling() || autoResubscribe === false) {
-         device.subscribe(topics, options, callback);
+         _updateSubscriptionCache('subscribe', topics, options); // we do not store callback in active cache
+         //
+         // If the 3rd argument (namely callback) is not present, we will
+         // use two-argument form to call mqtt.Client#subscribe(), which
+         // supports both subscribe(topics, options) and subscribe(topics, callback).
+         //
+         if (!isUndefined(callback)) {
+            device.subscribe(topics, options, callback);
+         } else {
+            device.subscribe(topics, options);
+         }
+      } else {
+         // we're offline - queue this subscription request
+         if (offlineSubscriptionQueue.length < offlineSubscriptionQueueMaxSize) {
+            offlineSubscriptionQueue.push({
+               type: 'subscribe',
+               topics: topics,
+               options: options,
+               callback: callback
+            });
+         } else {
+            that.emit('error', 'Maximum queued offline subscription operations reached.');
+         }
       }
    };
-   this.unsubscribe = function(topics, options, callback) {
-      _updateSubscriptionCache('unsubscribe', topics, options, callback);
+   this.unsubscribe = function(topics, callback) {
       if (!_filling() || autoResubscribe === false) {
-         device.unsubscribe(topics, options, callback);
+         _updateSubscriptionCache('unsubscribe', topics);
+         device.unsubscribe(topics, callback);
+      } else {
+         // we're offline - queue this unsubscribe request
+         if (offlineSubscriptionQueue.length < offlineSubscriptionQueueMaxSize) {
+            offlineSubscriptionQueue.push({
+               type: 'unsubscribe',
+               topics: topics,
+               options: options,
+               callback: callback
+            });
+         }
       }
    };
    this.end = function(force, callback) {

@@ -101,6 +101,45 @@ AWS.config.credentials.get(function(err, data) {
       cognitoIdentity.getCredentialsForIdentity(params, function(err, data) {
          if (!err) {
             //
+            // Now, pull all rows from the DynamoDB table containing the currently
+            // connected clients.
+            //
+            var docClient = new AWS.DynamoDB.DocumentClient();
+
+            var params = {
+               TableName: 'LifecycleEvents',
+               ProjectionExpression: 'clientId'
+            };
+
+            console.log('scanning dynamodb...');
+            docClient.scan(params, function(err, data) {
+               if (!err) {
+                  console.log('successfully scanned lifecycle events table');
+                  data.Items.forEach(function(object) {
+                     console.log('found client: ' + object.clientId);
+                     var divName = 'div-' + object.clientId.replace(/-|\s/g, '');
+                     if (window.isUndefined(clients[divName])) {
+                        //
+                        // This is a currently connected client; create a new div for
+                        // it and append it to the list of client divs.
+                        //
+                        var clientsDiv = document.getElementById('clients-div');
+                        var newDiv = document.createElement(divName);
+                        newDiv.innerHTML = object.clientId;
+                        newDiv.style.visibility = 'visible';
+                        newDiv.setAttribute('class', 'stack');
+                        clientsDiv.appendChild(newDiv);
+                        //
+                        // Remember this client
+                        //
+                        clients[divName] = newDiv;
+                     }
+                  });
+               } else {
+                  console.log('error scanning lifecycle events table: ' + JSON.stringify(err, null, 2));
+               }
+            });
+            //
             // Update our latest AWS credentials; the MQTT client will use these
             // during its next reconnect attempt.
             //
@@ -148,7 +187,7 @@ window.mqttClientReconnectHandler = function() {
 //
 // Utility function to determine if a value has been defined.
 //
-window.isUndefined = function( value ) {
+window.isUndefined = function(value) {
    return typeof value === 'undefined' || typeof value === null;
 };
 
@@ -156,21 +195,21 @@ window.isUndefined = function( value ) {
 // Message handler for lifecycle events; create/destroy divs as clients
 // connect/disconnect.
 //
-window.mqttClientMessageHandler = function( topic, payload ) {
+window.mqttClientMessageHandler = function(topic, payload) {
    var topicTokens = topic.split('/');
 
-   console.log('message: '+topic+':'+payload.toString());
+   console.log('message: ' + topic + ':' + payload.toString());
 
    if ((topicTokens[0] === '$aws') &&
-       (topicTokens[1] === 'events') &&
-       (topicTokens[2] === 'presence') &&
-       (topicTokens.length === 5)) {
+      (topicTokens[1] === 'events') &&
+      (topicTokens[2] === 'presence') &&
+      (topicTokens.length === 5)) {
       //
       // This is a presence event, topicTokens[3] contains the event
       // and topicTokens[4] contains the client name.
       //
       var clientIdString = topicTokens[4];
-      var divName = 'div-'+clientIdString.replace(/-|\s/g,'');
+      var divName = 'div-' + clientIdString.replace(/-|\s/g, '');
       if (!window.isUndefined(clients[divName])) {
          //
          // We know about this client, so a div should exist for it.
@@ -186,23 +225,22 @@ window.mqttClientMessageHandler = function( topic, payload ) {
             //
             delete clients[divName];
          }
-      }
-      else {
+      } else {
          //
          // We have never seen this client before; if it's a connect
          // event, we'll create a new div for it.  If it isn't, it
          // was connected before we began running so we ignore it.
          // Also ignore any events for our own client ID.
          //
-         if ((topicTokens[3] === 'connected') && 
-             (clientIdString !== clientId)) {
+         if ((topicTokens[3] === 'connected') &&
+            (clientIdString !== clientId)) {
             //
             // This is a newly connected client; create a new div for
             // it and append it to the list of client divs.
             //
             var clientsDiv = document.getElementById('clients-div');
-            var newDiv  = document.createElement(divName);
-            newDiv.innerHTML=clientIdString;
+            var newDiv = document.createElement(divName);
+            newDiv.innerHTML = clientIdString;
             newDiv.style.visibility = 'visible';
             newDiv.setAttribute('class', 'stack');
             clientsDiv.appendChild(newDiv);
@@ -212,9 +250,8 @@ window.mqttClientMessageHandler = function( topic, payload ) {
             clients[divName] = newDiv;
          }
       }
-   }
-   else {
-      console.log('unrecognized topic :'+topic);
+   } else {
+      console.log('unrecognized topic :' + topic);
    }
 };
 

@@ -130,18 +130,11 @@ thingShadows.on('connect', function() {
 // After connecting to the AWS IoT platform, register interest in the
 // Thing Shadow named 'RGBLedLamp'.
 //
-    thingShadows.register( 'RGBLedLamp' );
-//
-// 5 seconds after registering, update the Thing Shadow named 
+    thingShadows.register( 'RGBLedLamp', function() {
+
+// Once registration is complete, update the Thing Shadow named
 // 'RGBLedLamp' with the latest device state and save the clientToken
 // so that we can correlate it with status or timeout events.
-//
-// Note that the delay is not required for subsequent updates; only
-// the first update after a Thing Shadow registration using default
-// parameters requires a delay.  See API documentation for the update
-// method for more details.
-//
-    setTimeout( function() {
 //
 // Thing shadow state
 //
@@ -160,7 +153,6 @@ thingShadows.on('connect', function() {
        {
           console.log('update shadow failed, operation still in progress');
        }
-       }, 5000 );
     });
 
 thingShadows.on('status', 
@@ -246,7 +238,9 @@ All certificates and keys must be in PEM format.
 
 `options` also contains arguments specific to mqtt.  See [the mqtt client documentation]
 (https://github.com/mqttjs/MQTT.js/blob/master/README.md#client) for details 
-of these arguments.
+of these arguments. Note, AWS IoT doesn't support retained messages; setting `retain` flag to
+'true' for message publishing, including Last Will and Testament messages, will result in
+connection termination. For AWS IoT protocol specifics, please visit [here](http://docs.aws.amazon.com/iot/latest/developerguide/protocols.html).
 
 Supports all events emitted by the [mqtt.Client()](https://github.com/mqttjs/MQTT.js/blob/master/README.md#client) class.
 
@@ -333,7 +327,7 @@ from each operation.
 
 -------------------------------------------------------
 <a name="register"></a>
-### awsIot.thingShadow#register(thingName, [options] )
+### awsIot.thingShadow#register(thingName, [options], [callback] )
 
 Register interest in the Thing Shadow named `thingName`.  The thingShadow class will
 subscribe to any applicable topics, and will fire events for the Thing Shadow
@@ -363,6 +357,8 @@ If `enableVersioning` is set to true, version numbers will be sent with each ope
 AWS IoT maintains version numbers for each shadow, and will reject operations which 
 contain the incorrect version; in applications where multiple clients update the same
 shadow, clients can use versioning to avoid overwriting each other's changes.
+
+If the `callback` parameter is provided, it will be invoked after registration is complete (i.e., when subscription ACKs have been received for all shadow topics).  Applications should wait until shadow registration is complete before performing update/get/delete operations.
 
 -------------------------------------------------------
 <a name="unregister"></a>
@@ -447,7 +443,7 @@ connection used to access Thing Shadows.
 
 -------------------------------------------------------
 <a name="unsubscribe"></a>
-### awsIot.thingShadow#unsubscribe(topic, [options], [callback])
+### awsIot.thingShadow#unsubscribe(topic, [callback])
 
 Identical to the [mqtt.Client#unsubscribe()](https://github.com/mqttjs/MQTT.js/blob/master/README.md#unsubscribe) 
 method, with the restriction that the topic may not represent a Thing Shadow.
@@ -811,6 +807,8 @@ This SDK includes a utility script called `scripts/browserize.sh`.  This script 
 
 This command will create a browser bundle in `browser/aws-iot-sdk-browser-bundle.js`.  The browser bundle makes both the `aws-sdk` and `aws-iot-device-sdk` modules available so that you can `require` them from your browserified application bundle.
 
+**IMPORTANT:** The `scripts/browserize.sh` script requires npm version 3.  You can check which version of npm you have installed with `npm -v`.
+
 #### Creating Application Bundles
 You can also use the `scripts/browserize.sh` script to browserify your own applications and use them with the AWS SDK browser bundle.  For example, to prepare the [temperature-monitor](#temperature-monitor-browser-example) browser example application for use, run this command in the SDK's top-level directory:
 
@@ -864,6 +862,7 @@ This SDK includes a browser application which demonstrates the functionality of 
 	
 1. Open `examples/browser/lifecycle/index.html` in your web browser.  After connecting to AWS IoT, it should display 'connected clients'.
 1. Start programs which connect to AWS IoT (e.g., [the example programs in this package](#programs)).  Make sure that these programs are connecting to the same AWS region that your Cognito Identity Pool was created in.  The browser application will display a green box containing the client ID of each client which connects; when the client disconnects, the box will disappear.
+1. If a DynamoDB table named `LifecycleEvents` exists in your account and has a primary key named `clientId`, the lifecycle event browser monitor browser application will display the client ID contained in each row.  By updating this table using an [AWS IoT rule](http://docs.aws.amazon.com/iot/latest/developerguide/iot-rules.html) triggered by [lifecycle events](http://docs.aws.amazon.com/iot/latest/developerguide/life-cycle-events.html), you can maintain a persistent list of all of the currently connected clients within your account.
 
 <a name="mqtt-explorer-browser-example"></a>
 ### MQTT Explorer Browser Example Application
@@ -880,8 +879,54 @@ This SDK includes a browser application which implements a simple interactive MQ
 	
 1. Open `examples/browser/mqtt-explorer/index.html` in your web browser.  After connecting to AWS IoT, it should display input fields allowing you to subscribe or publish to a topic.  By subscribing to '#', for example, you will be able to monitor all traffic within your AWS account as allowed by the policy associated with the unauthenticated role of your Cognito Identity Pool.
 
-### Optimizations
-If you're writing a browser application based on the examples in this SDK, you might consider creating a smaller version of the AWS SDK for JavaScript using [the AWS SDK for JavaScript Custom Builder](https://sdk.amazonaws.com/builder/js/).  This tool allows you to create a version containing only the pieces of the SDK that you need (e.g., Cognito Identity), helping to reduce the size of the SDK bundle.  There are also tools available for reducing the size of JavaScript application bundles (e.g. [UglifyJS](https://github.com/mishoo/UglifyJS2)), but the `browserize.sh` script does not yet make use of them; bundle optimizations are left up to the user. 
+### Reducing Browser Bundle Size
+After your application development is complete, you will probably want to reduce the size of the browser bundle.  There are a couple of easy techniques to do this, and by combining both of them you can create much smaller browser bundles.
+
+#### Eliminate unused features from the AWS SDK
+
+1. The [AWS SDK for JavaScript](https://github.com/aws/aws-sdk-js) allows you to install only the features you use in your application.  In order to use this feature when preparing a browser bundle, first you'll need to remove any existing bundle that you've already created:
+	
+	```sh
+	rm browser/aws-iot-sdk-browser-bundle.js
+	```	
+
+2. Define the AWS features your application uses as a comma-separated list in the `AWS_SERVICES` environment variable.  For example, the [MQTT Explorer example](#mqtt-explorer-browser-example) uses only AWS Cognito Identity, so to create a bundle containing only this feature, do:
+
+	```sh
+	export AWS_SERVICES=cognitoidentity
+	```
+	For a list of the AWS SDK feature names, refer to the [_features subdirectory_ of the AWS SDK for JavaScript](https://github.com/aws/aws-sdk-js/tree/master/features).  As another example, if your application uses Cognito Identity, DynamoDB, S3, and SQS, you would do:
+	
+	```sh
+	export AWS_SERVICES=cognitoidentity,dynamodb,s3,sqs
+	``` 
+	
+3. Create the browser app and bundle, e.g. for the [MQTT Explorer example](#mqtt-explorer-browser-example), do:
+
+	```sh
+	npm run-script browserize examples/browser/mqtt-explorer/index.js
+	```
+	
+#### Uglify the bundle source
+
+[Uglify](https://www.npmjs.com/package/uglify) is an npm utility for minimizing the size of JavaScript source files.  To use it, first install it as a global npm package:
+
+```sh
+npm install -g uglify
+```
+
+Once installed, you can use it to reduce the bundle size:
+
+```sh
+uglify -s ./browser/aws-iot-sdk-browser-bundle.js -o ./browser/aws-iot-sdk-browser-bundle-min.js
+```
+After you've created the minimized bundle, you'll need to make sure that your application loads this version rather than the non-minimized version, e.g:
+
+```html
+<script src="aws-iot-sdk-browser-bundle-min.js"></script>
+```
+#### Optimization results
+By using both of the above techniques for the [MQTT Explorer example](#mqtt-explorer-browser-example), the bundle size can be reduced from 2.4MB to 615KB.
 
 <a name="troubleshooting"></a>
 ## Troubleshooting
@@ -900,6 +945,7 @@ specify a client ID, the example programs will generate random client IDs,
 but if you are using a [JSON configuration file](#configurationFile), you'll
 need to explictly specify client IDs for both programs using the '-i' command
 line option.
+* _Invalid NPM Version_:  To run the browserize.sh script which prepares the browser example applications, you'll need to use npm version 3.  This is because browserize.sh expects package dependencies to be handled using the npm version 3 strategy, which is [different than the strategy used in npm version 2](https://docs.npmjs.com/how-npm-works/npm3).  If you're having trouble running the browser application examples, make sure that you're using npm version 3.  You can check your npm version with `npm -v`.
 
 <a name="unittests"></a>
 ## Unit Tests

@@ -147,7 +147,7 @@ window.mqttClientReconnectHandler = function() {
 //
 // Utility function to determine if a value has been defined.
 //
-window.isUndefined = function( value ) {
+window.isUndefined = function(value) {
    return typeof value === 'undefined' || typeof value === null;
 };
 
@@ -155,10 +155,10 @@ window.isUndefined = function( value ) {
 // Message handler for lifecycle events; create/destroy divs as clients
 // connect/disconnect.
 //
-window.mqttClientMessageHandler = function( topic, payload ) {
-   console.log('message: '+topic+':'+payload.toString());
+window.mqttClientMessageHandler = function(topic, payload) {
+   console.log('message: ' + topic + ':' + payload.toString());
    messageHistory = messageHistory + topic + ':' + payload.toString() + '</br>';
-   document.getElementById('subscribe-div').innerHTML = '<p>'+messageHistory+'</p>';
+   document.getElementById('subscribe-div').innerHTML = '<p>' + messageHistory + '</p>';
 };
 
 //
@@ -175,7 +175,7 @@ window.updateSubscriptionTopic = function() {
 //
 // Handle the UI to clear the history window
 //
-window.clearHistory= function() {
+window.clearHistory = function() {
    if (confirm('Delete message history?') === true) {
       document.getElementById('subscribe-div').innerHTML = '<p><br></p>';
       messageHistory = '';
@@ -185,17 +185,16 @@ window.clearHistory= function() {
 //
 // Handle the UI to update the topic we're publishing on
 //
-window.updatePublishTopic= function() {
-};
+window.updatePublishTopic = function() {};
 
 //
 // Handle the UI to update the data we're publishing
 //
-window.updatePublishData= function() {
-   var publishText  = document.getElementById('publish-data').value;
+window.updatePublishData = function() {
+   var publishText = document.getElementById('publish-data').value;
    var publishTopic = document.getElementById('publish-topic').value;
 
-   mqttClient.publish( publishTopic, publishText );
+   mqttClient.publish(publishTopic, publishText);
    document.getElementById('publish-data').value = '';
 };
 

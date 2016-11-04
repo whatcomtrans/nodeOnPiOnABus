@@ -793,7 +793,6 @@ describe( "device class unit tests", function() {
          assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 0); // Connection not yet established
          mockMQTTClientObject.emit('connect');
          assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 0); // Connection not yet established
-         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 0); // Connection not yet established
          clock.tick( drainTimeMs * 3 );
          assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 3); // Connection established, subscriptions sent
          assert.equal(mockMQTTClientObject.subscriptions.shift(), 'topic1');
@@ -821,6 +820,170 @@ describe( "device class unit tests", function() {
          assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 6); // Connection not yet established
          clock.tick( drainTimeMs * 4 );
          assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 10); // Connection established
+        });
+    });
+//
+// Verify that array subscriptions sent when offline are queued as an array request and
+// then later sent as an array subscribe.
+//
+    describe("Verify that array subscriptions are queued as arrays", function() {
+      var clock;
+
+      before( function() { clock = sinon.useFakeTimers(); } );
+      after( function() { clock.restore(); } );
+
+       it("should queue array subs as arrays", function() {
+         // Test parameters
+         var drainTimeMs = 250;
+         // Reinit mockMQTTClientObject
+         mockMQTTClientObject.reInitCommandCalled();
+         var device = deviceModule( {
+               certPath:'test/data/certificate.pem.crt',
+               keyPath:'test/data/private.pem.key',
+               caPath:'test/data/root-CA.crt',
+               clientId:'dummy-client-1',
+               host:'https://data.iot.us-east-1.amazonaws.com',
+               baseReconnectTimeMs:1000,
+               minimumConnectionTimeMs:20000,
+               maximumReconnectTimeMs:128000,
+               drainTimeMs: drainTimeMs,
+            } );
+         device.subscribe( ['aTopic1','aTopic2','aTopic3'], { }, null );
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 0); // Connection not yet established
+         mockMQTTClientObject.emit('connect');
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 0); // Connection not yet established
+         clock.tick( drainTimeMs * 1 );
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 1); // Connection established, subscriptions sent
+         assert.equal(mockMQTTClientObject.subscriptions.shift(), 'aTopic1'); // one subscribe request
+         assert.equal(mockMQTTClientObject.subscriptions.shift(), 'aTopic2'); // but
+         assert.equal(mockMQTTClientObject.subscriptions.shift(), 'aTopic3'); // three topics seen in client
+        });
+    });
+//
+// Verify subscribes and unsubscribes are queued when offline
+//
+    describe("Verify subscribes and unsubscribes are queued when offline", function() {
+      var clock;
+
+      before( function() { clock = sinon.useFakeTimers(); } );
+      after( function() { clock.restore(); } );
+
+       it("should queue subs and unusbs", function() {
+         // Test parameters
+         var drainTimeMs = 250;
+         // Reinit mockMQTTClientObject
+         mockMQTTClientObject.reInitCommandCalled();
+         var device = deviceModule( {
+               certPath:'test/data/certificate.pem.crt',
+               keyPath:'test/data/private.pem.key',
+               caPath:'test/data/root-CA.crt',
+               clientId:'dummy-client-1',
+               host:'https://data.iot.us-east-1.amazonaws.com',
+               baseReconnectTimeMs:1000,
+               minimumConnectionTimeMs:20000,
+               maximumReconnectTimeMs:128000,
+               drainTimeMs: drainTimeMs,
+            } );
+         device.subscribe('topic1', { }, null );
+         device.subscribe('topic2', { }, null );
+         device.subscribe('topic3', { }, null );
+         device.unsubscribe('topic2', null );
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 0);
+         assert.equal(mockMQTTClientObject.commandCalled['unsubscribe'], 0);
+         mockMQTTClientObject.emit('connect');
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 0);
+         assert.equal(mockMQTTClientObject.commandCalled['unsubscribe'], 0);
+         clock.tick( drainTimeMs * 3 );
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 3);
+         assert.equal(mockMQTTClientObject.commandCalled['unsubscribe'], 0);
+         assert.equal(mockMQTTClientObject.subscriptions.shift(), 'topic1');
+         assert.equal(mockMQTTClientObject.subscriptions.shift(), 'topic2');
+         assert.equal(mockMQTTClientObject.subscriptions.shift(), 'topic3');
+         clock.tick( drainTimeMs * 1 );
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 3);
+         assert.equal(mockMQTTClientObject.commandCalled['unsubscribe'], 1);
+        });
+    });
+//
+// Verify offline subscription queue is not unlimited
+//
+    describe("Verify offline subscription queue is not unlimited", function() {
+      var clock;
+
+      before( function() { clock = sinon.useFakeTimers(); } );
+      after( function() { clock.restore(); } );
+
+       it("should only queue maximum sub/unsub operations", function() {
+         // Test parameters
+         var drainTimeMs = 250;
+         // Reinit mockMQTTClientObject
+         mockMQTTClientObject.reInitCommandCalled();
+         var device = deviceModule( {
+               certPath:'test/data/certificate.pem.crt',
+               keyPath:'test/data/private.pem.key',
+               caPath:'test/data/root-CA.crt',
+               clientId:'dummy-client-1',
+               host:'https://data.iot.us-east-1.amazonaws.com',
+               baseReconnectTimeMs:1000,
+               minimumConnectionTimeMs:20000,
+               maximumReconnectTimeMs:128000,
+               drainTimeMs: drainTimeMs,
+            } );
+
+         var fakeErrorCallback = sinon.spy();
+         device.on('error', fakeErrorCallback);
+
+         for (var i=0; i<25; ++i) {
+            device.subscribe('subtopic' + i, { }, null );
+            device.unsubscribe('unsubtopic' + i, null );
+         }
+
+         sinon.assert.notCalled(fakeErrorCallback);   // we're at 50 operations, no error yet
+         device.subscribe('topic1', { }, null );      // one more
+         assert(fakeErrorCallback.calledOnce);             // now we got an error
+        });
+    });
+//
+// Verify subscribe callback called on subscribe but not on resubscribe
+//
+    describe("Verify subscribe callback called on subscribe but not on resubscribe", function() {
+      var clock;
+
+      before( function() { clock = sinon.useFakeTimers(); } );
+      after( function() { clock.restore(); } );
+
+       it("should callback on sub, not resub", function() {
+         // Test parameters
+         var drainTimeMs = 250;
+         // Reinit mockMQTTClientObject
+         mockMQTTClientObject.reInitCommandCalled();
+         var device = deviceModule( {
+               certPath:'test/data/certificate.pem.crt',
+               keyPath:'test/data/private.pem.key',
+               caPath:'test/data/root-CA.crt',
+               clientId:'dummy-client-1',
+               host:'https://data.iot.us-east-1.amazonaws.com',
+               baseReconnectTimeMs:1000,
+               minimumConnectionTimeMs:20000,
+               maximumReconnectTimeMs:128000,
+               drainTimeMs: drainTimeMs,
+            } );
+         // Register a fake callback
+         var fakeCallback = sinon.spy();
+         mockMQTTClientObject.emit('connect');
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 0);
+         sinon.assert.notCalled(fakeCallback);
+         device.subscribe('topic1', { }, fakeCallback);
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 1);
+         assert(fakeCallback.calledOnce);
+         mockMQTTClientObject.emit('close');
+         mockMQTTClientObject.emit('reconnect');
+         mockMQTTClientObject.emit('connect');
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 1); // not until drain timer
+         assert(fakeCallback.calledOnce);
+         clock.tick( drainTimeMs * 1 );
+         assert.equal(mockMQTTClientObject.commandCalled['subscribe'], 2); // auto resubscribe
+         assert(fakeCallback.calledOnce); // not called a 2nd time
         });
     });
 //
@@ -1445,6 +1608,28 @@ describe( "device class unit tests", function() {
          const expectedUrl='wss://not-a-real-host.com/mqtt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=not a valid access key%2F19861115%2Fundefined%2Fiotdata%2Faws4_request&X-Amz-Date=19861115T080000Z&X-Amz-SignedHeaders=host&X-Amz-Signature=2f5c6df9fea874125a491d9bc5cbfd30279fd124b029e1ab18b0e77e8369f55c&X-Amz-Security-Token=not%2Fa%2Fvalid%2Fsession%20token';
 
          var url = deviceModule.prepareWebSocketUrl( { host:'not-a-real-host.com', debug: true }, 'not a valid access key','not a valid secret access key', 'not/a/valid/session token' );
+         assert.equal( url, expectedUrl );
+      });
+   });
+   describe( "websocket protocol URL is prepared correctly when non-standard port number is used", function() {
+//
+// Verify that the device module will not throw an exception when correctly
+// configured for websocket operation; verify that a non-standard port number
+// is correctly appended to the hostname during URL creation.
+//
+      var clock;
+//
+// Fix the date at a known value so that the URL preparation code will always produce
+// the same result.
+//
+      before( function() { clock = sinon.useFakeTimers( (new Date('11/15/86 PST')).getTime(), 'Date' ); } );
+      after( function() { clock.restore(); } );
+
+      it("calculates the url correctly", function() {
+
+         const expectedUrl='wss://not-a-real-host.com:9999/mqtt?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=not a valid access key%2F19861115%2Fundefined%2Fiotdata%2Faws4_request&X-Amz-Date=19861115T080000Z&X-Amz-SignedHeaders=host&X-Amz-Signature=62077f12458301adfe2d7fbb4eb271a060f29fcd3b7bbc22a8979e063ffda5cc&X-Amz-Security-Token=not%2Fa%2Fvalid%2Fsession%20token';
+
+         var url = deviceModule.prepareWebSocketUrl( { host:'not-a-real-host.com', port: 9999, debug: true }, 'not a valid access key','not a valid secret access key', 'not/a/valid/session token' );
          assert.equal( url, expectedUrl );
       });
    });
