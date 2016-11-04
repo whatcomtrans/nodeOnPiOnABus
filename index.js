@@ -13,8 +13,6 @@ const dgram = require("dgram");
 const exec = require('child_process').exec;
 const jsonfile = require('jsonfile');
 const net = require('net');
-const vm = require('vm');
-const _eval = require('eval');
 
 // enumserations
 const enums = new Object();
@@ -30,7 +28,7 @@ enums.debugLevel.INFO = 2;
 enums.debugLevel.DEBUG = 3;
 
 // TODO FOR DEBUGING LOCALLY ONLY
-var doCheckGitVersion = false;
+var doCheckGitVersion = true;
 
 /**
  * Turn on and off debug to console and set default level
