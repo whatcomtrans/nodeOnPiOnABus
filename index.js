@@ -62,7 +62,7 @@ function onpiThing() {
      checkGitVersion();
 
      // Listen for mqttCommands
-     piThing.subscribe(["/vehicles/" + piThing.thingName + "/commands", "/vehicles/pi/commands"], {"qos": 0}, function(err, granted) {
+     piThing.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
           if (err) {
                debugConsole.log("Error subscribing: " + err);
           } else {
@@ -77,6 +77,23 @@ function onpiThing() {
                });
           }
      });
+
+     piThing.subscribe("/vehicles/pi/commands", {"qos": 0}, function(err, granted) {
+          if (err) {
+               debugConsole.log("Error subscribing: " + err);
+          } else {
+               granted.forEach(function (grantedObj) {
+                    debugConsole.log("Subscribed to " + grantedObj.topic + " with qos " + grantedObj.qos);
+               });
+               piThing.on("message", function(topic, message) {
+                    debugConsole.log("Recieved on topic " + topic + " message: " + message);
+                    if (topic.endsWith("/commands")) {
+                         mqttCommands(message);
+                    }
+               });
+          }
+     });
+
 
      piThing.on("GPS.RLN.message", function(msgString) {
           awsClient.publish("/vehicles/GPS.RLN.message", msgString);
@@ -146,11 +163,12 @@ function onpiThing() {
      }
 
      // Update with GPS info
+     /*
      piThing.on("GPS.GPRMC",function(sentence){
           debugConsole.log("Updating lat/lon");
           piThing.reportProperty("lat", sentence.lat, true);
           piThing.reportProperty("lon", sentence.lon, false);
-     });
+     }); */
 
      // GPS
      piThing.on("GPS.message", function(message) {
@@ -200,7 +218,7 @@ function createThing() {
           awsIoTThing.clientFactory(awsConfig, function(err, client) {
                awsClient = client;
 
-               var thingName = "vehicle" + settings.vehicleId;
+               var thingName = "pi" + settings.vehicleId;
                // Create piThing
                awsClient.thingFactory(thingName, {"persistentSubscribe": true}, false, function(err, thing) {
                     piThing = thing;
@@ -269,7 +287,7 @@ function checkGitVersion() {
                                         if (error) {
                                              console.error(`exec error: ${error}`);
                                         } else {
-                                             piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {gracefullExit();});
+                                             piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {gracefulExit();});
                                         }
                                    });
                               });
@@ -305,14 +323,14 @@ function writeSettings(restart, stateUpdated) {
           } else {
                if (restart) {
                     //exit and Restart
-                    gracefullExit();
+                    gracefulExit();
                }
           }
      });
 }
 commands.writeSettings = writeSettings;
 
-function gracefullExit() {
+function gracefulExit() {
      debugConsole.log("Starting a gracefull exit..", debugConsole.INFO)
      // Disconnect servers
      updGPS.close();
@@ -324,7 +342,7 @@ function gracefullExit() {
           process.exit(0);
      });
 }
-commands.gracefullExit = gracefullExit;
+commands.gracefulExit = gracefulExit;
 
 function listenForGPS(udpPort, patternEmitter) {
 	//Monitor GPS data from UDP
@@ -359,6 +377,7 @@ commands.mqttConsole = debugConsole.mqttConsole;
 commands.log = debugConsole.log;
 commands.setDebugOutput = debugConsole.setDebugOutput;
 commands.setDebugLevel = debugConsole.setDebugLevel;
+commands.debugConsole = debugConsole;
 
 function mqttCommands(message) {
      var code = message.toString();
