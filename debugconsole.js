@@ -14,9 +14,9 @@ const EventEmitter = require('events');
  */
 class debugConsole extends EventEmitter {
      constructor(output, level) {
-          var _this = this;
           super();
-
+          var _this = this;
+          
           // enumerations
           //
           // level
