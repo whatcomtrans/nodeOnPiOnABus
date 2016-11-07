@@ -134,9 +134,9 @@ class debugConsole extends EventEmitter {
                          level = _this.DEBUG;
                          break;
                }
-          } else (
+          } else {
                level = parseInt(level, 10);
-          )
+          }
           _this._debugLevel = level;
           _this.emit("changed.debugLevel", _this._debugLevel);
           _this.emit("changed", "debugLevel", _this._debugLevel);
