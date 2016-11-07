@@ -16,7 +16,7 @@ class debugConsole extends EventEmitter {
      constructor(output, level) {
           super();
           var _this = this;
-          
+
           // enumerations
           //
           // level
@@ -56,7 +56,7 @@ class debugConsole extends EventEmitter {
                debugOutput = _this._debugOutput;
           }
           var levelName = "DEBUG";
-          if (level <= debugLevel) {
+          if (level <= _this._debugLevel) {
                switch (level) {
                     case 1:
                          levelName = "IMPORTANT";
