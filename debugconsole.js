@@ -119,7 +119,7 @@ class debugConsole extends EventEmitter {
 
      set debugLevel (level) {
           var _this = this;
-          if (parseInt(level) == NaN) {
+          if (parseInt(level, 10) == NaN) {
                switch (level.toUpperCase()) {
                     case _this.IMPORTANT:
                          level = _this.IMPORTANT;
@@ -135,7 +135,7 @@ class debugConsole extends EventEmitter {
                          break;
                }
           } else (
-               level = parseInt(level);
+               level = parseInt(level, 10);
           )
           _this._debugLevel = level;
           _this.emit("changed.debugLevel", _this._debugLevel);
