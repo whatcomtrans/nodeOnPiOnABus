@@ -103,3 +103,7 @@ class eventRelay {
           waiting.listeners.push(waitingListener);
      }
 }
+
+module.exports.relayFactory = function () {
+     return new eventRelay();
+}
