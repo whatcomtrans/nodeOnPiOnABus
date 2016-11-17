@@ -35,9 +35,9 @@ class gpsDevice extends GPS {
 	_listenUDP(port) {
 		var _this = this;
 		var server = dgram.createSocket("udp4");
-		_this._logger.log("Listing on UDP port " + udpPort);
+		_this._logger.log("Listing on UDP port " + port);
 		server.on("error", function (err) {
-			_this._logger.log("server error:\n" + err.stack, debugConsole.IMPORTANT);
+			_this._logger.log("server error:\n" + err.stack);
 			server.close();
 		});
 		server.on("listening", function () {
@@ -48,14 +48,14 @@ class gpsDevice extends GPS {
 		server.on("message", function (msg, rinfo) {
 			var gpsString = String(msg);
 			_this._logger.log("Server received message: " + gpsString);
-			_this._logger.emit("rawdata", gpsString);
+			_this.emit("rawdata", gpsString);
 			_this.update(gpsString);
 			_this.emit("message." + _this.type, gpsString);
 		});
 
 		//GPS parsing and emitting
-		_this._logger.log("Binding to port " + udpPort);
-		server.bind(udpPort);
+		_this._logger.log("Binding to port " + port);
+		server.bind(port);
 		_this._server = server;
 		_this._source = "udp";
 	}
