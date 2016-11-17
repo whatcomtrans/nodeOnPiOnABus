@@ -73,6 +73,18 @@ class gpsDevice extends EventEmitter {
 				break;
 		}
 	}
+
+	Distance(latFrom, lonFrom, latTo, lonTo) {
+		return GPS.Distance(latFrom, lonFrom, latTo, lonTo);
+	}
+
+	Heading(latFrom, lonFrom, latTo, lonTo) {
+		return GPS.Heading(latFrom, lonFrom, latTo, lonTo)
+	}
+
+	Parse(line) {
+		return GPS.Parse(line)
+	}
 }
 
 module.exports.gpsFactory = function() {
