@@ -132,8 +132,9 @@ function onpiThing() {
      });
 
      debugConsole.on("changed.debugOutput", function(value) {
-          console.log("debugOutput property ");
+          console.log("debugOutput property start");
           piThing.reportProperty("debugOutput", value, true, function() {
+               console.log("debugOutput property start");
                writeSettings();
           });
      });
