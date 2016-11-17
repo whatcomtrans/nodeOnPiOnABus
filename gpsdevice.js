@@ -2,9 +2,9 @@
 
 const dgram = require("dgram");
 const net = require('net');
-const GPSclass = require(gps);
+const GPS = require('gps');
 
-class gpsDevice extends GPSClass {
+class gpsDevice extends GPS {
 
 	constructor () {
 		this.super();
