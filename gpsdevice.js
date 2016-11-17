@@ -5,7 +5,7 @@ const net = require('net');
 const GPSclass = require(gps);
 
 class gpsDevice extends GPSClass {
-	
+
 	constructor () {
 		this.super();
 		var _this = this;
@@ -25,7 +25,7 @@ class gpsDevice extends GPSClass {
 
 	listen(config) {
 		switch (config.source) {
-			"udp" :
+			case "udp":
 				_listenUDP(config.udpPort);
 				break;
 		}
