@@ -92,7 +92,7 @@ function onpiThing() {
           }
      });
 
-     gpsDevice.on("rawdata"), function (msgString) {
+     gpsDevice.on("rawdata", function (msgString) {
           if (msgString.indexOf(">RLN") > -1) {
                //SAMPLE RLN MESSAGE:
                //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
