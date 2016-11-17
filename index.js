@@ -274,6 +274,7 @@ function sendToDVR(message) {
 commands.sendToDVR = sendToDVR;
 
 function writeSettings(restart, stateUpdated) {
+     debugConsole.log("About to write settings...");
      if (restart === undefined) {
           restart = false;
      }
