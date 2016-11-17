@@ -132,19 +132,17 @@ function onpiThing() {
      });
 
      debugConsole.on("changed.debugOutput", function(value) {
-          console.log("debugOutput property start");
-          piThing.reportProperty("debugOutput", value, true, function() {
-               console.log("debugOutput property writing");
+          piThing.reportProperty("debugOutput", value, false, function() {
                writeSettings();
           });
      });
      debugConsole.on("changed.debugLevel", function(value) {
-          piThing.reportProperty("debugLevel", value, true, function() {
+          piThing.reportProperty("debugLevel", value, false, function() {
                writeSettings();
           });
      });
      debugConsole.on("changed.mqttTopic", function(value) {
-          piThing.reportProperty("debugTopic", value, true, function() {
+          piThing.reportProperty("debugTopic", value, false, function() {
                writeSettings();
           });
      });
