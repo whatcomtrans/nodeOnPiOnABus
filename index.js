@@ -171,7 +171,7 @@ function onpiThing() {
      // GPS
      gpsDevice.on("data", function(data) {
           debugConsole.log("Recieved GPS message: " + JSON.stringify(data));
-     }
+     });
 }
 
 function createThing() {
