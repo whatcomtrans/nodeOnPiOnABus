@@ -52,7 +52,7 @@ class gpsDevice extends EventEmitter {
 			var gpsString = String(msg);
 			_this._logger.log("Server received message: " + gpsString);
 			_this.emit("rawdata", gpsString);
-			var result = _this._parser.parse(gpsString);
+			var result = _this._parser.Parse(gpsString);
 			_this.state = result;
 			_this.emit(result.type, result);
 		});
