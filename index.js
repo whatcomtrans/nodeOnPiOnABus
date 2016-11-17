@@ -160,7 +160,8 @@ function onpiThing() {
                          debugConsole.log("Connection to DVR closed.")
                     }
                });
-               gpsDevice.on("RMC", function(data.raw){
+               gpsDevice.on("RMC", function(data){
+                    var msg = data.raw;
                     debugConsole.log("Sending data to DVR: " + msg);
                     piThing.reportProperty("dvrGPSmsg", msg, true);
                     sendToDVR(msg);
