@@ -7,7 +7,7 @@ const GPS = require('gps');
 class gpsDevice extends GPS {
 
 	constructor () {
-		this.super();
+		super();
 		var _this = this;
 		_this._logger = console;
 		_this._source = "";
