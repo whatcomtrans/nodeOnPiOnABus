@@ -2,18 +2,17 @@
 
 // index.js
 // WTA nodeOnPiOnABus
-// Version 2.0.1
+// Version 3.0.1
 // Last updated 2016-09-11 by R. Josh Nylander
 //
 // Constants
 const awsIoTThing = require("awsiotthing");
 const fs = require('fs');
-const nmea = require("nmea");
-const dgram = require("dgram");
 const exec = require('child_process').exec;
 const jsonfile = require('jsonfile');
 const net = require('net');
 var debugConsole = require("./debugconsole").consoleFactory();
+var gpsDevice = require("./gpsDevice").gpsFactory();
 
 
 // TODO FOR DEBUGING LOCALLY ONLY
@@ -32,7 +31,6 @@ var connected = false;
 var awsClient = null;
 var piThing = null;
 var tcpDVR = null;
-var updGPS = null;
 
 var commands = new Object();
 
@@ -56,7 +54,7 @@ function onpiThing() {
      debugConsole.log("Thing created, running onpiThing");
 
      // Listen for GPS
-     updGPS = listenForGPS(piThing.getProperty("GPSudpPort"), piThing);
+     gpsDevice.listen({source: "udp", "udpPort": piThing.getProperty("GPSudpPort")});
 
      // Verify we are up to date
      checkGitVersion();
@@ -94,6 +92,14 @@ function onpiThing() {
           }
      });
 
+     gpsDevice.on("rawdata"), function (msgString) {
+          if (msgString.indexOf(">RLN") > -1) {
+               //SAMPLE RLN MESSAGE:
+               //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
+
+               piThing.emit("GPS.RLN.message", msgString);
+          }
+     });
 
      piThing.on("GPS.RLN.message", function(msgString) {
           awsClient.publish("/vehicles/GPS.RLN.message", msgString);
@@ -154,7 +160,7 @@ function onpiThing() {
                          debugConsole.log("Connection to DVR closed.")
                     }
                });
-               piThing.on("GPS.GPRMC.message", function(msg){
+               gpsDevice.on("message.RMC", function(msg){
                     debugConsole.log("Sending data to DVR: " + msg);
                     piThing.reportProperty("dvrGPSmsg", msg, true);
                     sendToDVR(msg);
@@ -162,48 +168,10 @@ function onpiThing() {
           });
      }
 
-     // Update with GPS info
-     /*
-     piThing.on("GPS.GPRMC",function(sentence){
-          debugConsole.log("Updating lat/lon");
-          piThing.reportProperty("lat", sentence.lat, true);
-          piThing.reportProperty("lon", sentence.lon, false);
-     }); */
-
      // GPS
-     piThing.on("GPS.message", function(message) {
-          var msgString = message.message;
-          debugConsole.log("Recieved GPS message: " + msgString);
-          if (msgString.indexOf("$GPRMC") > -1) {
-               var sentence = nmea.parse(msgString);
-               //sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
-               //sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
-               piThing.emit("GPS.GPRMC.message", msgString);
-               piThing.emit("GPS.GPRMC",sentence);
-          }
-          if (msgString.indexOf("$GPGSV") > -1) {
-               var sentence = nmea.parse(msgString);
-               piThing.emit("GPS.GPGSV.message", msgString);
-               piThing.emit("GPS.GPGSV",sentence);
-          }
-          if (msgString.indexOf("$GPGLL") > -1) {
-               var sentence = nmea.parse(msgString);
-               piThing.emit("GPS.GPGLL.message", msgString);
-               piThing.emit("GPS.GPGLL",sentence);
-          }
-          if (msgString.indexOf("$GPGGA") > -1) {
-               var sentence = nmea.parse(msgString);
-               //sentence.lat = sentence.lat.substring(0,2) + '.' + (sentence.lat.substring(2)/60).toString().replace('.','');
-               //sentence.lon = '-' + sentence.lon.substring(0,3) + '.' + (sentence.lon.substring(3)/60).toString().replace('.','');
-               piThing.emit("GPS.GPGGA.message", msgString);
-               piThing.emit("GPS.GPGGA",sentence);
-          }
-          if (msgString.indexOf(">RLN") > -1) {
-               piThing.emit("GPS.RLN.message",msgString);
-          }
-          //SAMPLE RLN MESSAGE:
-          //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
-     });
+     gpsDevice.on("data", function(data) {
+          debugConsole.log("Recieved GPS message: " + JSON.stringify(data));
+     }
 }
 
 function createThing() {
@@ -333,7 +301,7 @@ commands.writeSettings = writeSettings;
 function gracefulExit() {
      debugConsole.log("Starting a gracefull exit..", debugConsole.INFO)
      // Disconnect servers
-     updGPS.close();
+     gpsDevice.stop();
      if (tcpDVR != null) {
           tcpDVR.end();
      }
@@ -343,30 +311,6 @@ function gracefulExit() {
      });
 }
 commands.gracefulExit = gracefulExit;
-
-function listenForGPS(udpPort, patternEmitter) {
-	//Monitor GPS data from UDP
-	var server = dgram.createSocket("udp4");
-	debugConsole.log("Listing on UDP port " + udpPort);
-	server.on("error", function (err) {
-		debugConsole.log("server error:\n" + err.stack, debugConsole.IMPORTANT);
-		server.close();
-	});
-	server.on("listening", function () {
-		//this.myIP = server.address();
-		debugConsole.log("Server is listening for udp packets...");
-	});
-	server.on("message", function (msg, rinfo) {
-		//debugConsole.log("Server received message...");
-		var gpsMessage = new Object();
-		gpsMessage.message = String(msg);
-		patternEmitter.emit("GPS.message", gpsMessage);
-	});
-	//GPS parsing and emitting
-
-	server.bind(udpPort);
-	return server;
-}
 
 // Setup cleanup;
 process.on("beforeExit", function() {
