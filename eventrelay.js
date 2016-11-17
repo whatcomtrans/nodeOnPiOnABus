@@ -8,6 +8,8 @@ class eventRelay {
 		_this._logger = console;
 
           _this._emitters = new Map();
+          _this._waitingEmitters = new Map();
+
 	}
 
 	set logger(logger) {
@@ -23,6 +25,25 @@ class eventRelay {
      addRelay(prefix, emitter) {
           var _this = this;
           _this._emmitters.set(prefix, emitter);
+
+          // If there are any waiting listeners, add them now
+          if (_this._waitingEmitters.has(prefix)) {
+               var waiting  = _this._waitingEmitters.get(prefix);
+               var waitingListener = waiting.listeners.pop();
+               while (waitingListener !==  undefined) {
+                    if (waitingListener.once) {
+                         // Add an once listener
+                         emitter.once(waitingListener.localEventName, waitingListener.listener);
+                    } else {
+                         // Add an on listener
+                         emitter.on(waitingListener.localEventName, waitingListener.listener);
+                    }
+                    // Get the next one
+                    waitingListener = waiting.listeners.pop();
+               }
+               // Remove it from the list of waiting
+               _this._waitingEmitters.delete(prefix);
+          }
      }
 
      getRelay(prefix) {
@@ -30,17 +51,55 @@ class eventRelay {
           return _this._emitters.get(prefix);
      }
 
+     hasRelay(prefix) {
+          var _this = this;
+          return _this._emitters.has(prefix);
+     }
+
      on(eventName, listener) {
           var _this = this;
           var prefix = eventName.split(".", 1)[0];
-          var eventName = eventName.split(".", 1)[1];
-          _this._emitters.get(prefix).on(eventName, listener);
+          var localEventName = eventName.split(".", 1)[1];
+          if (_this._emitters.has(prefix)) {
+               _this._emitters.get(prefix).on(localEventName, listener);
+          } else {
+               _this.addWaiting(eventName, listener, false);
+          }
      }
 
      once(eventName, listener) {
           var _this = this;
           var prefix = eventName.split(".", 1)[0];
-          var eventName = eventName.split(".", 1)[1];
-          _this._emitters.get(prefix).once(eventName, listener);
+          var localEventName = eventName.split(".", 1)[1];
+          if (_this._emitters.has(prefix)) {
+               _this._emitters.get(prefix).once(localEventName, listener);
+          } else {
+               _this.addWaiting(eventName, listener, true);
+          }
+     }
+
+     addWaiting(eventName, listener, once) {
+          var _this = this;
+          var prefix = eventName.split(".", 1)[0];
+          var localEventName = eventName.split(".", 1)[1];
+
+          if ((_this._waitingEmitters.has(prefix)) {
+               // Add to existing emitter waiting object
+               var waiting = _this._waitingEmitters.get(prefix);
+          } else {
+               // Create new emitter waiting object
+               var waiting = new Object();
+               waiting.prefix = prefix;
+               waiting.listeners = new Array();
+               _this._waitingEmitters.set(prefix, waiting);
+          }
+
+          var waitingListener = new Object();
+          waitingListener.prefix = prefix;
+          waitingListener.eventName = eventName;
+          waitingListener.localEventName = localEventName;
+          waitingListener.listener = listener;
+          waitingListener.once = false;
+          waiting.listeners.push(waitingListener);
      }
 }
