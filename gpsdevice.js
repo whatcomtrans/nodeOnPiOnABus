@@ -24,9 +24,10 @@ class gpsDevice extends GPS {
 	}
 
 	listen(config) {
+		var _this = this;
 		switch (config.source) {
 			case "udp":
-				_listenUDP(config.udpPort);
+				_this._listenUDP(config.udpPort);
 				break;
 		}
 	}
