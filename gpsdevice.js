@@ -3,14 +3,17 @@
 const dgram = require("dgram");
 const net = require('net');
 const GPS = require('gps');
+const EventEmitter = require('events');
 
-class gpsDevice extends GPS {
+class gpsDevice extends EventEmitter {
 
 	constructor () {
 		super();
 		var _this = this;
 		_this._logger = console;
 		_this._source = "";
+		_this._parser = new GPS;
+		_this.state = null;
 	}
 
 	set logger(logger) {
@@ -49,8 +52,9 @@ class gpsDevice extends GPS {
 			var gpsString = String(msg);
 			_this._logger.log("Server received message: " + gpsString);
 			_this.emit("rawdata", gpsString);
-			_this.update(gpsString);
-			_this.emit("message." + _this.type, gpsString);
+			var result = _this._parser.parse(gpsString);
+			_this.state = result;
+			_this.emit(result.type, result);
 		});
 
 		//GPS parsing and emitting
