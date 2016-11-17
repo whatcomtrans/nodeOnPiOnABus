@@ -3,9 +3,12 @@
 const dgram = require("dgram");
 const net = require('net');
 const GPS = require('gps');
-const EventEmitter = require('events');
 
-class gpsDevice extends EventEmitter {
+// const EventEmitter = require('events');
+// class gpsDevice extends EventEmitter {
+
+const awsIoTThing = require("awsiotthing");
+class gpsDevice extends awsIoTThing {
 
 	constructor () {
 		super();
