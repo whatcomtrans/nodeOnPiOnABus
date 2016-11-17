@@ -2,7 +2,7 @@
 
 // index.js
 // WTA nodeOnPiOnABus
-// Version 3.0.1
+// Version 3.0.2
 // Last updated 2016-09-11 by R. Josh Nylander
 //
 // Constants
