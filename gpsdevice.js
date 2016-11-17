@@ -69,6 +69,6 @@ class gpsDevice extends GPS {
 	}
 }
 
-modele.exports.gpsFactory = function() {
+module.exports.gpsFactory = function() {
 	return new gpsDevice();
 }
