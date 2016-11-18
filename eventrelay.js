@@ -22,7 +22,7 @@ class eventRelay {
 		return _this._logger;
 	}
 
-     addRelay(prefix, emitter) {
+     addEmitter(prefix, emitter) {
           var _this = this;
           _this._emmitters.set(prefix, emitter);
 
@@ -46,12 +46,12 @@ class eventRelay {
           }
      }
 
-     getRelay(prefix) {
+     getEmitter(prefix) {
           var _this = this;
           return _this._emitters.get(prefix);
      }
 
-     hasRelay(prefix) {
+     hasEmitter(prefix) {
           var _this = this;
           return _this._emitters.has(prefix);
      }
@@ -102,6 +102,11 @@ class eventRelay {
           waitingListener.once = false;
           waiting.listeners.push(waitingListener);
      }
+
+	stop() {
+		var _this = this;
+		// TODO
+	}
 }
 
 module.exports.relayFactory = function () {

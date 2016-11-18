@@ -2,63 +2,86 @@
 
 // index.js
 // WTA nodeOnPiOnABus
-// Version 3.0.2
-// Last updated 2016-09-11 by R. Josh Nylander
+// Version 3.1.0
+// Last updated November 2016 by R. Josh Nylander
 //
-// Constants
+
+// TODO FOR DEBUGING LOCALLY ONLY
+var doCheckGitVersion = false;
+
+// Requires
 const awsIoTThing = require("awsiotthing");
 const fs = require('fs');
 const exec = require('child_process').exec;
 const jsonfile = require('jsonfile');
 const net = require('net');
 var debugConsole = require("./debugconsole").consoleFactory();
-var gpsDevice = require("./gpsDevice").gpsFactory();
+var gpsDevice = require("./gpsdevice").gpsFactory();
 
+/* The eventRelay acts as a proxy to add listeners to emitters.
+ * It uses a prefix string followed by a period.  So the event
+ * you want to add listener for is [PREFIX].[eventName]
+ *
+ * It has a special feature which allows listeners to be added
+ * before the emitter exists.  This greatly simplifies building
+ * of an event based model below.
+*/
+const eventRelay = require("./eventrelay").relayFactory();
 
-// TODO FOR DEBUGING LOCALLY ONLY
-var doCheckGitVersion = false;
-
-/**
- * Turn on and off debug to console and set default level
- */
-debugConsole.debugOutput = debugConsole.CONSOLEONLY;
-debugConsole.debugLevel = debugConsole.DEBUG;
-
-// Track status of piThing connection
-var connected = false;
-
-// IoT variables
-var awsClient = null;
-var piThing = null;
-var tcpDVR = null;
-
-var commands = new Object();
-
-//Settings
+// Settings
 var awsConfig = require("../settings/awsclientconfig.json");
 var settings = require("../settings/settings.json");
-if ("debugOutput" in settings) {
-     debugConsole.debugOutput = settings.debugOutput;
+
+// Functions attached to this object will be available over the remote console
+var commands = new Object();
+
+// TODO move this to the rest of the MQTT setup
+function mqttCommands(message) {
+     var code = message.toString();
+     debugConsole.log("About to eval: " + code);
+     global.f = new Function("commands", code);
+     f.call(commands, commands);
 }
-if ("debugLevel" in settings) {
-     debugConsole.debugLevel = settings.debugLevel;
-}
+
+// Extend the process object to support a startup and shutdown event model
+process.startup = function() {
+     process.emit("startup");
+};
+process.shutdown = function(exitCode) {
+     if (exitCode === undefined) {
+          exitCode = 0;
+     }
+     process.exitCode = exitCode;
+     process.emit("shutdown", exitCode);
+};
+eventRelay.addEmitter("PROCESS", process);
+commands.shutdown = process.shutdown;
+commands.startup = process.startup;
+
+
+// Setup debugConsole
+debugConsole.debugOutput = debugConsole.CONSOLEONLY;
+debugConsole.debugLevel = debugConsole.DEBUG;
+// Apply settings to debugConsole
+debugConsole.apply(settings);
 if ("debugTopic" in settings) {
      debugConsole.mqttTopic = settings.debugTopic;
 }
 debugConsole.log("Initial settings: " + JSON.stringify(settings), debugConsole.INFO);
+commands.mqttConsole = debugConsole.mqttConsole;
+commands.log = debugConsole.log;
+commands.setDebugOutput = debugConsole.setDebugOutput;
+commands.setDebugLevel = debugConsole.setDebugLevel;
+commands.debugConsole = debugConsole;
+eventRelay.addEmitter("LOGGER", debugConsole);
+eventRelay.on("piThing.registered", function() {
+     debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
+     debugConsole.mqttAgent = piThing;
+});
 
 // This function is the essense of the rest of the program.
 // It runs once the thing is created.  Setup all of the ON listeners here.
-function onpiThing() {
-     debugConsole.log("Thing created, running onpiThing");
-
-     // Listen for GPS
-     gpsDevice.listen({source: "udp", "udpPort": piThing.getProperty("GPSudpPort")});
-
-     // Verify we are up to date
-     checkGitVersion();
-
+eventRelay.once("piThing.getAccepted", function() {
      // Listen for mqttCommands
      piThing.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
           if (err) {
@@ -173,9 +196,20 @@ function onpiThing() {
      gpsDevice.on("data", function(data) {
           // debugConsole.log("Recieved GPS message: " + JSON.stringify(data));
      });
-}
+});
 
-function createThing() {
+// Setup gpsListener
+eventRelay.once("piThing.getAccepted", function() {
+     gpsDevice.listen({source: "udp", "udpPort": piThing.getProperty("GPSudpPort")});
+});
+eventRelay.on("PROCESS.shutdown", function() {
+     debugConsole.log("Exiting... Stopping gpsDevice", debugConsole.INFO);
+     gpsDevice.stop();
+});
+
+// Define global awsClient and have it configure on startup
+var awsClient = null;
+eventRelay.once("PROCESS.startup", function () {
      // Connect to AWS IoT
      // Determine my MAC address and use as clientId
      debugConsole.log("about to getmac");
@@ -184,49 +218,101 @@ function createThing() {
           awsConfig.clientId = "nodeOnPiOnABus-client-" + mac;
           settings.macAddress = mac;
           debugConsole.log("Creating awsClient with clientId of " + awsConfig.clientId, debugConsole.INFO);
-          awsIoTThing.clientFactory(awsConfig, function(err, client) {
-               awsClient = client;
+          awsClient = awsIoTThing.clientFactory(awsConfig);
+          eventRelay.addEmitter("AWSClient", awsClient);
+     });
+});
+// Track status of connection
+var awsClientConnected= false;
+eventRelay.on("AWSClient.connect", function() {
+     awsClientConnected= true;
+});
+eventRelay.on("AWSClient.close", function() {
+     awsClientConnected= false;
+});
+eventRelay.on("AWSClient.offline", function() {
+     awsClientConnected= false;
+});
 
-               var thingName = "pi" + settings.vehicleId;
-               // Create piThing
-               awsClient.thingFactory(thingName, {"persistentSubscribe": true}, false, function(err, thing) {
-                    piThing = thing;
-                    commands.piThing = piThing;
-                    if (err) {
-                         debugConsole.log("Error: " + err);
+
+// Add the piThing
+var piThing = null;
+eventRelay.once("AWSClient.connect", function(err, client) {
+     // Create piThing
+     awsClient.thingFactory("pi" + settings.vehicleId, {"persistentSubscribe": true}, false, function(err, thing) {
+          piThing = thing;
+          eventRelay.addEmitter("piThing", thing);
+          commands.piThing = thing;
+          if (err) {
+               debugConsole.log("Error: " + err);
+          }
+          debugConsole.log(JSON.stringify(thing));
+          debugConsole.log("thing created");
+          // Handle connection status changes
+          thing.register(function() {
+               thing.emit("registered");
+               debugConsole.log("thing registered");
+               thing.retrieveState(function(){
+                    var propName;
+                    for (propName in settings) {
+                         thing.reportProperty(propName, settings[propName], true);
                     }
-                    debugConsole.log(JSON.stringify(thing));
-                    debugConsole.log("thing created");
-                    // Handle connection status changes
-                    piThing.on("connect", function() {
-                         connected = true;
-                    });
-                    piThing.on("close", function() {
-                         connected = false;
-                    });
-                    piThing.on("offline", function() {
-                         connected = false;
-                    });
-                    piThing.register(function() {
-                         debugConsole.log("thing registered");
-                         connected = true;
-                         debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
-                         debugConsole.mqttAgent = piThing;
-                         piThing.retrieveState(function(){
-                              var propName;
-                              for (propName in settings) {
-                                   piThing.reportProperty(propName, settings[propName], true);
-                              }
-                              piThing.reportState();
-                              onpiThing();
-                         });
-                    });
+                    thing.reportState();
                });
           });
      });
-}
+});
+eventRelay.on("PROCESS.shutdown", function() {
+     piThing.end(false, function() {
+          debugConsole.log("Exiting... Stoped pi", debugConsole.INFO);
+     });
+});
 
-//
+// Rudementary DVR setup
+var tcpDVR = null;
+eventRelay.on("PROCESS.shutdown", function() {
+     if (tcpDVR != null) {
+          debugConsole.log("Exiting... Stopping tcpDVR stream", debugConsole.INFO);
+          tcpDVR.end();
+     }
+});
+function sendToDVR(message) {
+     debugConsole.log("Send to DVR success: " + tcpDVR.write(message +  String.fromCharCode(13), "ascii"));
+}
+commands.sendToDVR = sendToDVR;
+
+function writeSettings(restart, stateUpdated) {
+     debugConsole.log("About to write settings...");
+     if (restart === undefined) {
+          restart = false;
+     }
+     if (piThing != null) {
+          if (stateUpdated === undefined) {
+               piThing.retrieveState(function () {
+                    writeSettings(true, true);
+               });
+          } else {
+               settings = piThing.getReported();
+          }
+     }
+     jsonfile.writeFile("../settings/settings.json", settings, function (err) {
+          if (err) {
+               console.error(err);
+          } else {
+               if (restart) {
+                    //exit and Restart
+                    commands.exit();
+               }
+          }
+     });
+}
+commands.writeSettings = writeSettings;
+
+// versioning via Git
+eventRelay.once("piThing.getAccepted", function() {
+     // Verify we are up to date
+     checkGitVersion();
+});
 function checkGitVersion() {
      if (doCheckGitVersion) {
           exec('git log -1 --format="%H"', (error, stdout, stderr) => {
@@ -256,7 +342,7 @@ function checkGitVersion() {
                                         if (error) {
                                              console.error(`exec error: ${error}`);
                                         } else {
-                                             piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {gracefulExit();});
+                                             piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {commands.exit();});
                                         }
                                    });
                               });
@@ -268,71 +354,6 @@ function checkGitVersion() {
 }
 commands.checkGitVersion = checkGitVersion;
 
-function sendToDVR(message) {
-     debugConsole.log("Send to DVR success: " + tcpDVR.write(message +  String.fromCharCode(13), "ascii"));
-}
-commands.sendToDVR = sendToDVR;
-
-function writeSettings(restart, stateUpdated) {
-     debugConsole.log("About to write settings...");
-     if (restart === undefined) {
-          restart = false;
-     }
-     if (piThing != null) {
-          if (stateUpdated === undefined) {
-               piThing.retrieveState(function () {
-                    writeSettings(true, true);
-               });
-          } else {
-               settings = piThing.getReported();
-          }
-     }
-     jsonfile.writeFile("../settings/settings.json", settings, function (err) {
-          if (err) {
-               console.error(err);
-          } else {
-               if (restart) {
-                    //exit and Restart
-                    gracefulExit();
-               }
-          }
-     });
-}
-commands.writeSettings = writeSettings;
-
-function gracefulExit() {
-     debugConsole.log("Starting a gracefull exit..", debugConsole.INFO)
-     // Disconnect servers
-     gpsDevice.stop();
-     if (tcpDVR != null) {
-          tcpDVR.end();
-     }
-     // Disconnect piThing
-     piThing.end(false, function() {
-          process.exit(0);
-     });
-}
-commands.gracefulExit = gracefulExit;
-
-// Setup cleanup;
-process.on("beforeExit", function() {
-     debugConsole.log("Exiting...", debugConsole.INFO);
-});
-
-commands.mqttConsole = debugConsole.mqttConsole;
-commands.log = debugConsole.log;
-commands.setDebugOutput = debugConsole.setDebugOutput;
-commands.setDebugLevel = debugConsole.setDebugLevel;
-commands.debugConsole = debugConsole;
-
-function mqttCommands(message) {
-     var code = message.toString();
-     debugConsole.log("About to eval: " + code);
-     global.f = new Function("commands", code);
-     f.call(commands, commands);
-     //mqttConsole(_eval(message));
-}
-
 // Ok, lets get this started
 debugConsole.log("Lets get started");
-createThing();
+createClient();

@@ -90,6 +90,14 @@ class debugConsole extends EventEmitter {
           }
      }
 
+     apply(config) {
+          // TODO
+     }
+
+     stop() {
+          // TODO , if anything
+     }
+
      logMqtt(msg) {
           var _this = this;
           if (_this._mqttTopic == null || _this._mqttAgent == null) {
