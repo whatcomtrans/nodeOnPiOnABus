@@ -2,8 +2,8 @@
 
 class eventRelay {
 
-	constructor () {
-		super();
+	constructor () { 
+    	//super();
 		var _this = this;
 		_this._logger = console;
 
@@ -24,7 +24,7 @@ class eventRelay {
 
      addEmitter(prefix, emitter) {
           var _this = this;
-          _this._emmitters.set(prefix, emitter);
+          _this._emitters.set(prefix, emitter);
 
           // If there are any waiting listeners, add them now
           if (_this._waitingEmitters.has(prefix)) {
@@ -83,7 +83,7 @@ class eventRelay {
           var prefix = eventName.split(".", 1)[0];
           var localEventName = eventName.split(".", 1)[1];
 
-          if ((_this._waitingEmitters.has(prefix)) {
+          if (_this._waitingEmitters.has(prefix)) {
                // Add to existing emitter waiting object
                var waiting = _this._waitingEmitters.get(prefix);
           } else {
