@@ -356,4 +356,4 @@ commands.checkGitVersion = checkGitVersion;
 
 // Ok, lets get this started
 debugConsole.log("Lets get started");
-createClient();
+process.startup();

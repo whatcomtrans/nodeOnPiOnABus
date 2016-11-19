@@ -25,6 +25,7 @@ class eventRelay {
      addEmitter(prefix, emitter) {
           var _this = this;
           _this._emitters.set(prefix, emitter);
+          _this._logger.log("Adding emitter as " + prefix);
 
           // If there are any waiting listeners, add them now
           if (_this._waitingEmitters.has(prefix)) {
@@ -58,8 +59,9 @@ class eventRelay {
 
      on(eventName, listener) {
           var _this = this;
-          var prefix = eventName.split(".", 1)[0];
-          var localEventName = eventName.split(".", 1)[1];
+          var prefix = eventName.split(".", 2)[0];
+          var localEventName = eventName.split(".", 2)[1];
+          _this._logger.log("Recieved on for prefix " + prefix + " with event name " + localEventName);
           if (_this._emitters.has(prefix)) {
                _this._emitters.get(prefix).on(localEventName, listener);
           } else {
@@ -69,8 +71,9 @@ class eventRelay {
 
      once(eventName, listener) {
           var _this = this;
-          var prefix = eventName.split(".", 1)[0];
-          var localEventName = eventName.split(".", 1)[1];
+          var prefix = eventName.split(".", 2)[0];
+          var localEventName = eventName.split(".", 2)[1];
+          _this._logger.log("Recieved once for prefix " + prefix + " with event name " + localEventName);
           if (_this._emitters.has(prefix)) {
                _this._emitters.get(prefix).once(localEventName, listener);
           } else {
@@ -80,8 +83,8 @@ class eventRelay {
 
      addWaiting(eventName, listener, once) {
           var _this = this;
-          var prefix = eventName.split(".", 1)[0];
-          var localEventName = eventName.split(".", 1)[1];
+          var prefix = eventName.split(".", 2)[0];
+          var localEventName = eventName.split(".", 2)[1];
 
           if (_this._waitingEmitters.has(prefix)) {
                // Add to existing emitter waiting object
@@ -102,11 +105,6 @@ class eventRelay {
           waitingListener.once = false;
           waiting.listeners.push(waitingListener);
      }
-
-	stop() {
-		var _this = this;
-		// TODO
-	}
 }
 
 module.exports.relayFactory = function () {
