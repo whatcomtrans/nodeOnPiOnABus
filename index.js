@@ -18,7 +18,7 @@ const net = require('net');
 var debugConsole = require("./debugconsole").consoleFactory();
 var gpsDevice = require("./gpsdevice").gpsFactory();
 
-/* The eventRelay acts as a proxy to add listeners to emitters.
+/* The listenerRelay.acts as a proxy to add listeners to emitters.
  * It uses a prefix string followed by a period.  So the event
  * you want to add listener for is [PREFIX].[eventName]
  *
@@ -26,7 +26,7 @@ var gpsDevice = require("./gpsdevice").gpsFactory();
  * before the emitter exists.  This greatly simplifies building
  * of an event based model below.
 */
-const eventRelay = require("./eventrelay").relayFactory();
+const listenerRelay.= require("./eventrelay").relayFactory();
 
 // Settings
 var awsConfig = require("../settings/awsclientconfig.json");
@@ -54,7 +54,7 @@ process.shutdown = function(exitCode) {
      process.exitCode = exitCode;
      process.emit("shutdown", exitCode);
 };
-eventRelay.addEmitter("PROCESS", process);
+listenerRelay.addEmitter("PROCESS", process);
 commands.shutdown = process.shutdown;
 commands.startup = process.startup;
 
@@ -73,15 +73,15 @@ commands.log = debugConsole.log;
 commands.setDebugOutput = debugConsole.setDebugOutput;
 commands.setDebugLevel = debugConsole.setDebugLevel;
 commands.debugConsole = debugConsole;
-eventRelay.addEmitter("LOGGER", debugConsole);
-eventRelay.on("piThing.registered", function() {
+listenerRelay.addEmitter("LOGGER", debugConsole);
+listenerRelay.on("piThing.registered", function() {
      debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
      debugConsole.mqttAgent = piThing;
 });
 
 // This function is the essense of the rest of the program.
 // It runs once the thing is created.  Setup all of the ON listeners here.
-eventRelay.once("piThing.getAccepted", function() {
+listenerRelay.once("piThing.getAccepted", function() {
      // Listen for mqttCommands
      piThing.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
           if (err) {
@@ -199,17 +199,19 @@ eventRelay.once("piThing.getAccepted", function() {
 });
 
 // Setup gpsListener
-eventRelay.once("piThing.getAccepted", function() {
-     gpsDevice.listen({source: "udp", "udpPort": piThing.getProperty("GPSudpPort")});
+gpsDevice.logger = debugConsole;
+commands.gpsDevice = gpsDevice;
+listenerRelay.once("piThing.getAccepted", function() {
+     gpsDevice.listen({source: "udp", "udpPort": settings.GPSudpPort});
 });
-eventRelay.on("PROCESS.shutdown", function() {
+listenerRelay.on("PROCESS.shutdown", function() {
      debugConsole.log("Exiting... Stopping gpsDevice", debugConsole.INFO);
      gpsDevice.stop();
 });
 
 // Define global awsClient and have it configure on startup
 var awsClient = null;
-eventRelay.once("PROCESS.startup", function () {
+listenerRelay.once("PROCESS.startup", function () {
      // Connect to AWS IoT
      // Determine my MAC address and use as clientId
      debugConsole.log("about to getmac");
@@ -219,29 +221,29 @@ eventRelay.once("PROCESS.startup", function () {
           settings.macAddress = mac;
           debugConsole.log("Creating awsClient with clientId of " + awsConfig.clientId, debugConsole.INFO);
           awsClient = awsIoTThing.clientFactory(awsConfig);
-          eventRelay.addEmitter("AWSClient", awsClient);
+          listenerRelay.addEmitter("AWSClient", awsClient);
      });
 });
 // Track status of connection
 var awsClientConnected= false;
-eventRelay.on("AWSClient.connect", function() {
+listenerRelay.on("AWSClient.connect", function() {
      awsClientConnected= true;
 });
-eventRelay.on("AWSClient.close", function() {
+listenerRelay.on("AWSClient.close", function() {
      awsClientConnected= false;
 });
-eventRelay.on("AWSClient.offline", function() {
+listenerRelay.on("AWSClient.offline", function() {
      awsClientConnected= false;
 });
 
 
 // Add the piThing
 var piThing = null;
-eventRelay.once("AWSClient.connect", function(err, client) {
+listenerRelay.once("AWSClient.connect", function(err, client) {
      // Create piThing
      awsClient.thingFactory("pi" + settings.vehicleId, {"persistentSubscribe": true}, false, function(err, thing) {
           piThing = thing;
-          eventRelay.addEmitter("piThing", thing);
+          listenerRelay.addEmitter("piThing", thing);
           commands.piThing = thing;
           if (err) {
                debugConsole.log("Error: " + err);
@@ -262,7 +264,7 @@ eventRelay.once("AWSClient.connect", function(err, client) {
           });
      });
 });
-eventRelay.on("PROCESS.shutdown", function() {
+listenerRelay.on("PROCESS.shutdown", function() {
      piThing.end(false, function() {
           debugConsole.log("Exiting... Stoped pi", debugConsole.INFO);
      });
@@ -270,7 +272,7 @@ eventRelay.on("PROCESS.shutdown", function() {
 
 // Rudementary DVR setup
 var tcpDVR = null;
-eventRelay.on("PROCESS.shutdown", function() {
+listenerRelay.on("PROCESS.shutdown", function() {
      if (tcpDVR != null) {
           debugConsole.log("Exiting... Stopping tcpDVR stream", debugConsole.INFO);
           tcpDVR.end();
@@ -301,7 +303,7 @@ function writeSettings(restart, stateUpdated) {
           } else {
                if (restart) {
                     //exit and Restart
-                    commands.exit();
+                    process.shutdown();
                }
           }
      });
@@ -309,7 +311,7 @@ function writeSettings(restart, stateUpdated) {
 commands.writeSettings = writeSettings;
 
 // versioning via Git
-eventRelay.once("piThing.getAccepted", function() {
+listenerRelay.once("piThing.getAccepted", function() {
      // Verify we are up to date
      checkGitVersion();
 });

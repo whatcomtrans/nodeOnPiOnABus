@@ -38,7 +38,7 @@ class gpsDevice extends EventEmitter {
 	_listenUDP(port) {
 		var _this = this;
 		var server = dgram.createSocket("udp4");
-		_this._logger.log("Listing on UDP port " + port);
+		_this._logger.log("Listening on UDP port " + port);
 		server.on("error", function (err) {
 			_this._logger.log("server error:\n" + err.stack);
 			server.close();
