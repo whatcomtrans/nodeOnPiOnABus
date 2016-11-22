@@ -26,7 +26,7 @@ var gpsDevice = require("./gpsdevice").gpsFactory();
  * before the emitter exists.  This greatly simplifies building
  * of an event based model below.
 */
-const listenerRelay.= require("./eventrelay").relayFactory();
+const listenerRelay = require("./eventrelay").relayFactory();
 
 // Settings
 var awsConfig = require("../settings/awsclientconfig.json");
