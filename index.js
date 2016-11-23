@@ -9,6 +9,12 @@
 // TODO FOR DEBUGING LOCALLY ONLY
 var doCheckGitVersion = false;
 
+// A run level allows us to quickly enable/disable sections of the script below
+// Each section should be ordered based on dependencies.  To run all, set run level to 10000.
+var runLevel = 10000;
+
+// TODO support command line options to set runLevel and debugLevel
+
 // Requires
 const awsIoTThing = require("awsiotthing");
 const fs = require('fs');
@@ -35,6 +41,7 @@ const listenerRelay = require("./eventrelay").relayFactory();
 var awsConfig = require("../settings/awsclientconfig.json");
 var settings = require("../settings/settings.json");
 
+debugConsole.log("Settings loaded.  Configuring with runLevel " + runLevel + ".");
 
 // Extend the process object to support a startup and shutdown event model
 process.startup = function() {
@@ -55,301 +62,316 @@ commands.startup = process.startup;
 // Setup debugConsole
 debugConsole.debugOutput = debugConsole.CONSOLEONLY;
 debugConsole.debugLevel = debugConsole.DEBUG;
-// Apply settings to debugConsole
-debugConsole.apply(settings);
-if ("debugTopic" in settings) {
-     debugConsole.mqttTopic = settings.debugTopic;
+
+if (runLevel >= 1) {  // Advanced debugConsole setup
+     // Apply settings to debugConsole
+     debugConsole.apply(settings);
+     if ("debugTopic" in settings) {
+          debugConsole.mqttTopic = settings.debugTopic;
+     }
+     debugConsole.log("Initial settings: " + JSON.stringify(settings), debugConsole.INFO);
+     commands.mqttConsole = debugConsole.mqttConsole;
+     commands.log = debugConsole.log;
+     commands.setDebugOutput = debugConsole.setDebugOutput;
+     commands.setDebugLevel = debugConsole.setDebugLevel;
+     commands.debugConsole = debugConsole;
+     listenerRelay.addEmitter("LOGGER", debugConsole);
+     listenerRelay.on("piThing.registered", function() {
+          debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
+          debugConsole.mqttAgent = piThing;
+     });
+     listenerRelay.on("piThing.delta", function(state) {
+          if (piThing.getDeltaProperty("debugOutput") != null) {
+               debugConsole.log("Changing debugOutput to: " + piThing.getDeltaProperty("debugOutput"), debugConsole.INFO);
+               debugConsole.debugOutput = piThing.getDeltaProperty("debugOutput");
+          }
+          if (piThing.getDeltaProperty("debugLevel") != null) {
+               debugConsole.log("Changing debugLevel to: " + piThing.getDeltaProperty("debugLevel"), debugConsole.INFO);
+               debugConsole.debugOutput = piThing.getDeltaProperty("debugLevel");
+          }
+     });
+     // write out settings file when these are changed
+     debugConsole.on("changed.debugOutput", function(value) {
+          piThing.reportProperty("debugOutput", value, false, function() {
+               writeSettings();
+          });
+     });
+     debugConsole.on("changed.debugLevel", function(value) {
+          piThing.reportProperty("debugLevel", value, false, function() {
+               writeSettings();
+          });
+     });
+     debugConsole.on("changed.mqttTopic", function(value) {
+          piThing.reportProperty("debugTopic", value, false, function() {
+               writeSettings();
+          });
+     });
 }
-debugConsole.log("Initial settings: " + JSON.stringify(settings), debugConsole.INFO);
-commands.mqttConsole = debugConsole.mqttConsole;
-commands.log = debugConsole.log;
-commands.setDebugOutput = debugConsole.setDebugOutput;
-commands.setDebugLevel = debugConsole.setDebugLevel;
-commands.debugConsole = debugConsole;
-listenerRelay.addEmitter("LOGGER", debugConsole);
-listenerRelay.on("piThing.registered", function() {
-     debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
-     debugConsole.mqttAgent = piThing;
-});
-listenerRelay.on("piThing.delta", function(state) {
-     if (piThing.getDeltaProperty("debugOutput") != null) {
-          debugConsole.log("Changing debugOutput to: " + piThing.getDeltaProperty("debugOutput"), debugConsole.INFO);
-          debugConsole.debugOutput = piThing.getDeltaProperty("debugOutput");
-     }
-     if (piThing.getDeltaProperty("debugLevel") != null) {
-          debugConsole.log("Changing debugLevel to: " + piThing.getDeltaProperty("debugLevel"), debugConsole.INFO);
-          debugConsole.debugOutput = piThing.getDeltaProperty("debugLevel");
-     }
-});
-// write out settings file when these are changed
-debugConsole.on("changed.debugOutput", function(value) {
-     piThing.reportProperty("debugOutput", value, false, function() {
-          writeSettings();
-     });
-});
-debugConsole.on("changed.debugLevel", function(value) {
-     piThing.reportProperty("debugLevel", value, false, function() {
-          writeSettings();
-     });
-});
-debugConsole.on("changed.mqttTopic", function(value) {
-     piThing.reportProperty("debugTopic", value, false, function() {
-          writeSettings();
-     });
-});
 
-
-// Detect vehicleID and set it, updating settings as we go.
-listenerRelay.once("GPS.RLN.message", function(msgString) {
-     var id = msgString.substr((msgString.indexOf(";ID=")+5),3);
-     // is vehicleID different then current settings
-     if (id != settings.vehicleId) {
-          debugConsole.log("Updating vehicleId from " + settings.vehicleId + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
-          writeSettings(true);
-     }
-});
-
-// Publish RLN messages to AWS
-listenerRelay.on("piThing.registered", function() {
-     listenerRelay.on("GPS.rawdata", function (msgString) {
-          if (msgString.indexOf(">RLN") > -1) {
-               //SAMPLE RLN MESSAGE:
-               //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
-               awsClient.publish("/vehicles/GPS.RLN.message", msgString);
+if (runLevel >= 2) {   // Settings management
+     function writeSettings(restart, stateUpdated) {
+          var outSettings = settings;
+          debugConsole.log("About to write settings...");
+          if (restart === undefined) {
+               restart = false;
           }
-     });
-});
-
-
-// Rudementary DVR setup
-var tcpDVR = null;
-var newDVRs = ["831", "832", "833", "834", "835", "836", "837"];
-if (newDVRs.indexOf(piThing.getProperty("vehicleId")) > -1 ) {
-     listenerRelay.on("PROCESS.shutdown", function() {
-          if (tcpDVR != null) {
-               debugConsole.log("Exiting... Stopping tcpDVR stream", debugConsole.INFO);
-               tcpDVR.end();
-          }
-     });
-
-     function sendToDVR(message) {
-          debugConsole.log("Send to DVR success: " + tcpDVR.write(message +  String.fromCharCode(13), "ascii"));
-     }
-     commands.sendToDVR = sendToDVR;
-
-     debugConsole.log("Creating connection to DVR...");
-     tcpDVR = net.createConnection(5070, "192.168.1.129", function(){
-          debugConsole.log("Connection established to DVR");
-          tcpDVR.on("close", function(had_error){
-               if (had_error) {
-                    debugConsole.log("Connection to DVR closed due to error.")
+          if (piThing != null) {
+               if (stateUpdated === undefined) {
+                    piThing.retrieveState(function () {
+                         writeSettings(true, true);
+                    });
                } else {
-                    debugConsole.log("Connection to DVR closed.")
+                    outSettings = piThing.getReported();
                }
-          });
-          listenerRelay.on("RMC", function(data){
-               var msg = data.raw;
-               debugConsole.log("Sending data to DVR: " + msg);
-               piThing.reportProperty("dvrGPSmsg", msg, true);
-               sendToDVR(msg);
-          });
-     });
-}
-
-// Setup gpsListener
-gpsDevice.logger = debugConsole;
-commands.gpsDevice = gpsDevice;
-listenerRelay.addEmitter("GPS", gpsDevice);
-gpsDevice.listen({source: "udp", "udpPort": settings.GPSudpPort});
-listenerRelay.on("PROCESS.shutdown", function() {
-     debugConsole.log("Exiting... Stopping gpsDevice", debugConsole.INFO);
-     gpsDevice.stop();
-});
-
-// Define global awsClient and have it configure on startup
-var awsClient = null;
-listenerRelay.once("PROCESS.startup", function () {
-     // Connect to AWS IoT
-     // Determine my MAC address and use as clientId
-     debugConsole.log("about to getmac");
-     require('getmac').getMac(function (err, mac) {
-          if (err)  throw err
-          awsConfig.clientId = "nodeOnPiOnABus-client-" + mac;
-          settings.macAddress = mac;
-          debugConsole.log("Creating awsClient with clientId of " + awsConfig.clientId, debugConsole.INFO);
-          awsClient = awsIoTThing.clientFactory(awsConfig);
-          listenerRelay.addEmitter("AWSClient", awsClient);
-     });
-});
-// Track status of connection
-var awsClientConnected= false;
-listenerRelay.on("AWSClient.connect", function() {
-     awsClientConnected= true;
-});
-listenerRelay.on("AWSClient.close", function() {
-     awsClientConnected= false;
-});
-listenerRelay.on("AWSClient.offline", function() {
-     awsClientConnected= false;
-});
-
-
-// Add the piThing
-var piThing = null;
-listenerRelay.once("AWSClient.connect", function(err, client) {
-     // Create piThing
-     awsClient.thingFactory("pi" + settings.vehicleId, {"persistentSubscribe": true}, false, function(err, thing) {
-          piThing = thing;
-          listenerRelay.addEmitter("piThing", thing);
-          commands.piThing = thing;
-          if (err) {
-               debugConsole.log("Error: " + err);
           }
-          debugConsole.log(JSON.stringify(thing));
-          debugConsole.log("thing created");
-          // Handle connection status changes
-          thing.register(function() {
-               thing.emit("registered");
-               debugConsole.log("thing registered");
-               thing.retrieveState(function(){
-                    var propName;
-                    for (propName in settings) {
-                         thing.reportProperty(propName, settings[propName], true);
+          jsonfile.writeFile("../settings/settings.json", outSettings, function (err) {
+               if (err) {
+                    console.error(err);
+               } else {
+                    // TODO should add an emit here but not sure what emitter to use
+                    if (restart) {
+                         //exit and Restart
+                         process.shutdown();
                     }
-                    thing.reportState();
-               });
-          });
-     });
-});
-listenerRelay.on("PROCESS.shutdown", function() {
-     piThing.end(false, function() {
-          debugConsole.log("Exiting... Stoped pi", debugConsole.INFO);
-     });
-});
-
-function writeSettings(restart, stateUpdated) {
-     var outSettings = settings;
-     debugConsole.log("About to write settings...");
-     if (restart === undefined) {
-          restart = false;
-     }
-     if (piThing != null) {
-          if (stateUpdated === undefined) {
-               piThing.retrieveState(function () {
-                    writeSettings(true, true);
-               });
-          } else {
-               outSettings = piThing.getReported();
-          }
-     }
-     jsonfile.writeFile("../settings/settings.json", outSettings, function (err) {
-          if (err) {
-               console.error(err);
-          } else {
-               // TODO should add an emit here but not sure what emitter to use
-               if (restart) {
-                    //exit and Restart
-                    process.shutdown();
                }
+          });
+     }
+     commands.writeSettings = writeSettings;
+}
+
+if (runLevel >= 5) {   // Git versioning
+     // versioning via Git
+     listenerRelay.once("piThing.getAccepted", function() {
+          // Verify we are up to date
+          checkGitVersion();
+     });
+     // If commit is different, run the checkGitVersion
+     listenerRelay.on("piThing.delta", function(state) {
+          if (piThing.getDeltaProperty("commit") != null) {
+               checkGitVersion();
           }
      });
-}
-commands.writeSettings = writeSettings;
+     function checkGitVersion() {
+          if (doCheckGitVersion) {
+               exec('git log -1 --format="%H"', (error, stdout, stderr) => {
+                    if (error) {
+                         console.error(`exec error: ${error}`);
+                    } else {
+                         debugConsole.log("Current git commit is: " + stdout.replace(/(\r\n|\n|\r)/gm,""), debugConsole.INFO);
+                         piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""));
 
-// versioning via Git
-listenerRelay.once("piThing.getAccepted", function() {
-     // Verify we are up to date
-     checkGitVersion();
-});
-// If commit is different, run the checkGitVersion
-listenerRelay.on("piThing.delta", function(state) {
-     if (piThing.getDeltaProperty("commit") != null) {
-          checkGitVersion();
-     }
-});
-function checkGitVersion() {
-     if (doCheckGitVersion) {
-          exec('git log -1 --format="%H"', (error, stdout, stderr) => {
-               if (error) {
-                    console.error(`exec error: ${error}`);
-               } else {
-                    debugConsole.log("Current git commit is: " + stdout.replace(/(\r\n|\n|\r)/gm,""), debugConsole.INFO);
-                    piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""));
-
-                    // Get notified of the version delta
-                    debugConsole.log("Delta git commit is: " + piThing.getDeltaProperty("commit"), debugConsole.INFO);
-                    if (piThing.getDeltaProperty("commit") != null) {
-                         //change commit
-                         var newCommit = piThing.getDeltaProperty("commit")
-                         debugConsole ("Need to update the commit to: " + newCommit, debugConsole.INFO);
-                         // Call 'git fetch --all'
-                         exec('git fetch --all', (error, stdout, stderr) => {
-                              debugConsole.log("git error: " + error);
-                              debugConsole.log("git stdout: " + stdout);
-                              debugConsole.log("git stderr: " + stderr);
-                              // Call 'git checkout --force "${TARGET}"'
-                              exec('git checkout --force "' + newCommit + '"', (error, stdout, stderr) => {
+                         // Get notified of the version delta
+                         debugConsole.log("Delta git commit is: " + piThing.getDeltaProperty("commit"), debugConsole.INFO);
+                         if (piThing.getDeltaProperty("commit") != null) {
+                              //change commit
+                              var newCommit = piThing.getDeltaProperty("commit")
+                              debugConsole ("Need to update the commit to: " + newCommit, debugConsole.INFO);
+                              // Call 'git fetch --all'
+                              exec('git fetch --all', (error, stdout, stderr) => {
                                    debugConsole.log("git error: " + error);
                                    debugConsole.log("git stdout: " + stdout);
                                    debugConsole.log("git stderr: " + stderr);
-                                   exec('git log -1 --format="%H"', (error, stdout, stderr) => {
-                                        if (error) {
-                                             console.error(`exec error: ${error}`);
-                                        } else {
-                                             piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {commands.exit();});
-                                        }
+                                   // Call 'git checkout --force "${TARGET}"'
+                                   exec('git checkout --force "' + newCommit + '"', (error, stdout, stderr) => {
+                                        debugConsole.log("git error: " + error);
+                                        debugConsole.log("git stdout: " + stdout);
+                                        debugConsole.log("git stderr: " + stderr);
+                                        exec('git log -1 --format="%H"', (error, stdout, stderr) => {
+                                             if (error) {
+                                                  console.error(`exec error: ${error}`);
+                                             } else {
+                                                  piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {commands.exit();});
+                                             }
+                                        });
                                    });
                               });
-                         });
+                         }
                     }
+               });
+          }
+     }
+     commands.checkGitVersion = checkGitVersion;
+}
+
+if (runLevel >= 10) {   // GPS lisener
+     // Setup gpsListener
+     gpsDevice.logger = debugConsole;
+     commands.gpsDevice = gpsDevice;
+     listenerRelay.addEmitter("GPS", gpsDevice);
+     gpsDevice.listen({source: "udp", "udpPort": settings.GPSudpPort});
+     listenerRelay.on("PROCESS.shutdown", function() {
+          debugConsole.log("Exiting... Stopping gpsDevice", debugConsole.INFO);
+          gpsDevice.stop();
+     });
+}
+
+if (runLevel >= 11) {  // Changing vehicleID based on RLN from GPS
+     // Detect vehicleID and set it, updating settings as we go.
+     listenerRelay.once("GPS.RLN.message", function(msgString) {
+          var id = msgString.substr((msgString.indexOf(";ID=")+5),3);
+          // is vehicleID different then current settings
+          if (id != settings.vehicleId) {
+               debugConsole.log("Updating vehicleId from " + settings.vehicleId + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
+               writeSettings(true);
+          }
+     });
+}
+
+if (runLevel >= 20) {  // AWS IoT Client
+     // Define global awsClient and have it configure on startup
+     var awsClient = null;
+     listenerRelay.once("PROCESS.startup", function () {
+          // Connect to AWS IoT
+          // Determine my MAC address and use as clientId
+          debugConsole.log("about to getmac");
+          require('getmac').getMac(function (err, mac) {
+               if (err)  throw err
+               awsConfig.clientId = "nodeOnPiOnABus-client-" + mac;
+               settings.macAddress = mac;
+               debugConsole.log("Creating awsClient with clientId of " + awsConfig.clientId, debugConsole.INFO);
+               awsClient = awsIoTThing.clientFactory(awsConfig);
+               listenerRelay.addEmitter("AWSClient", awsClient);
+          });
+     });
+     // Track status of connection
+     var awsClientConnected= false;
+     listenerRelay.on("AWSClient.connect", function() {
+          awsClientConnected= true;
+     });
+     listenerRelay.on("AWSClient.close", function() {
+          awsClientConnected= false;
+     });
+     listenerRelay.on("AWSClient.offline", function() {
+          awsClientConnected= false;
+     });
+}
+
+if (runLevel >= 21) {  // MQTT remote command processing support
+     function mqttCommands(message) {
+          var code = message.toString();
+          debugConsole.log("About to eval: " + code);
+          global.f = new Function("commands", code);
+          f.call(commands, commands);
+     }
+     listenerRelay.once("", function() {
+          piThing.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
+               if (err) {
+                    debugConsole.log("Error subscribing: " + err);
+               } else {
+                    granted.forEach(function (grantedObj) {
+                         debugConsole.log("Subscribed to " + grantedObj.topic + " with qos " + grantedObj.qos);
+                    });
+                    piThing.on("message", function(topic, message) {
+                         debugConsole.log("Recieved on topic " + topic + " message: " + message);
+                         if (topic.endsWith("/commands")) {
+                              mqttCommands(message);
+                         }
+                    });
                }
+          });
+
+          piThing.subscribe("/vehicles/pi/commands", {"qos": 0}, function(err, granted) {
+               if (err) {
+                    debugConsole.log("Error subscribing: " + err);
+               } else {
+                    granted.forEach(function (grantedObj) {
+                         debugConsole.log("Subscribed to " + grantedObj.topic + " with qos " + grantedObj.qos);
+                    });
+                    piThing.on("message", function(topic, message) {
+                         debugConsole.log("Recieved on topic " + topic + " message: " + message);
+                         if (topic.endsWith("/commands")) {
+                              mqttCommands(message);
+                         }
+                    });
+               }
+          });
+
+     });
+}
+
+if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
+     listenerRelay.on("piThing.registered", function() {
+          listenerRelay.on("GPS.rawdata", function (msgString) {
+               if (msgString.indexOf(">RLN") > -1) {
+                    //SAMPLE RLN MESSAGE:
+                    //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
+                    awsClient.publish("/vehicles/GPS.RLN.message", msgString);
+               }
+          });
+     });
+}
+
+if (runLevel >= 30) {  // AWS IoT thing representing this Pi
+     // Add the piThing
+     var piThing = null;
+     listenerRelay.once("AWSClient.connect", function(err, client) {
+          // Create piThing
+          awsClient.thingFactory("pi" + settings.vehicleId, {"persistentSubscribe": true}, false, function(err, thing) {
+               piThing = thing;
+               listenerRelay.addEmitter("piThing", thing);
+               commands.piThing = thing;
+               if (err) {
+                    debugConsole.log("Error: " + err);
+               }
+               debugConsole.log(JSON.stringify(thing));
+               debugConsole.log("thing created");
+               // Handle connection status changes
+               thing.register(function() {
+                    thing.emit("registered");
+                    debugConsole.log("thing registered");
+                    thing.retrieveState(function(){
+                         var propName;
+                         for (propName in settings) {
+                              thing.reportProperty(propName, settings[propName], true);
+                         }
+                         thing.reportState();
+                    });
+               });
+          });
+     });
+     listenerRelay.on("PROCESS.shutdown", function() {
+          piThing.end(false, function() {
+               debugConsole.log("Exiting... Stoped pi", debugConsole.INFO);
+          });
+     });
+}
+
+if (runLevel >= 40) {  // Rudementary GPS to DVR over TCP setup
+     var tcpDVR = null;
+     var newDVRs = ["831", "832", "833", "834", "835", "836", "837"];
+     if (newDVRs.indexOf(piThing.getProperty("vehicleId")) > -1 ) {
+          listenerRelay.on("PROCESS.shutdown", function() {
+               if (tcpDVR != null) {
+                    debugConsole.log("Exiting... Stopping tcpDVR stream", debugConsole.INFO);
+                    tcpDVR.end();
+               }
+          });
+
+          function sendToDVR(message) {
+               debugConsole.log("Send to DVR success: " + tcpDVR.write(message +  String.fromCharCode(13), "ascii"));
+          }
+          commands.sendToDVR = sendToDVR;
+
+          debugConsole.log("Creating connection to DVR...");
+          tcpDVR = net.createConnection(5070, "192.168.1.129", function(){
+               debugConsole.log("Connection established to DVR");
+               tcpDVR.on("close", function(had_error){
+                    if (had_error) {
+                         debugConsole.log("Connection to DVR closed due to error.")
+                    } else {
+                         debugConsole.log("Connection to DVR closed.")
+                    }
+               });
+               listenerRelay.on("RMC", function(data){
+                    var msg = data.raw;
+                    debugConsole.log("Sending data to DVR: " + msg);
+                    piThing.reportProperty("dvrGPSmsg", msg, true);
+                    sendToDVR(msg);
+               });
           });
      }
 }
-commands.checkGitVersion = checkGitVersion;
-
-// MQTT remote command processing support
-function mqttCommands(message) {
-     var code = message.toString();
-     debugConsole.log("About to eval: " + code);
-     global.f = new Function("commands", code);
-     f.call(commands, commands);
-}
-listenerRelay.once("", function() {
-     piThing.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
-          if (err) {
-               debugConsole.log("Error subscribing: " + err);
-          } else {
-               granted.forEach(function (grantedObj) {
-                    debugConsole.log("Subscribed to " + grantedObj.topic + " with qos " + grantedObj.qos);
-               });
-               piThing.on("message", function(topic, message) {
-                    debugConsole.log("Recieved on topic " + topic + " message: " + message);
-                    if (topic.endsWith("/commands")) {
-                         mqttCommands(message);
-                    }
-               });
-          }
-     });
-
-     piThing.subscribe("/vehicles/pi/commands", {"qos": 0}, function(err, granted) {
-          if (err) {
-               debugConsole.log("Error subscribing: " + err);
-          } else {
-               granted.forEach(function (grantedObj) {
-                    debugConsole.log("Subscribed to " + grantedObj.topic + " with qos " + grantedObj.qos);
-               });
-               piThing.on("message", function(topic, message) {
-                    debugConsole.log("Recieved on topic " + topic + " message: " + message);
-                    if (topic.endsWith("/commands")) {
-                         mqttCommands(message);
-                    }
-               });
-          }
-     });
-
-});
 
 // Ok, lets get this started
-debugConsole.log("Lets get started");
+debugConsole.log("Emitting startup event.");
 process.startup();
