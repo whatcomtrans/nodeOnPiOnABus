@@ -13,8 +13,6 @@ var doCheckGitVersion = false;
 // Each section should be ordered based on dependencies.  To run all, set run level to 10000.
 var runLevel = 10000;
 
-// TODO support command line options to set runLevel and debugLevel
-
 // Requires
 const awsIoTThing = require("awsiotthing");
 const fs = require('fs');
@@ -23,6 +21,19 @@ const jsonfile = require('jsonfile');
 const net = require('net');
 var debugConsole = require("./debugconsole").consoleFactory();
 var gpsDevice = require("./gpsdevice").gpsFactory();
+
+// Gather command line arguments and setup Defaults
+// https://github.com/yargs/yargs
+// DEFAULT values
+var argv = require('yargs')
+          .usage('Usage: $0 --debugLevel [num] --debugOutput [string] --runLevel [num] --doCheckGitVersion [boolean]')
+          .default('debugOutput', debugConsole.CONSOLEONLY)
+          .choices('debugOutput', ['CONSOLEONLY', 'CONSOLEMQTT', 'MQTTONLY', 'NONE'])
+          .coerce('debugOuput', function(arg) {return arg.toUpperCase();})
+          .default('debugLevel', debugConsole.DEBUG)
+          .boolean('doCheckGitVersion')
+          .default('doCheckGitVersion', doCheckGitVersion)
+          .argv;
 
 // Functions attached to this object will be available over the remote console
 var commands = new Object();
@@ -59,11 +70,18 @@ commands.shutdown = process.shutdown;
 commands.startup = process.startup;
 
 
-// Setup debugConsole
-debugConsole.debugOutput = debugConsole.CONSOLEONLY;
-debugConsole.debugLevel = debugConsole.DEBUG;
+if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLevel
+     // set runLevel
+     runLevel = argv.runLevel;
 
-if (runLevel >= 1) {  // Advanced debugConsole setup
+     doCheckGitVersion = argv.doCheckGitVersion;
+
+     // Setup debugConsole
+     debugConsole.debugOutput = argv.debugOutput  // debugConsole.CONSOLEONLY;
+     debugConsole.debugLevel = argv.debugLevel  // debugConsole.DEBUG;
+}
+
+if (runLevel >= 2) {  // Advanced debugConsole setup
      // Apply settings to debugConsole
      debugConsole.apply(settings);
      if ("debugTopic" in settings) {
@@ -108,7 +126,7 @@ if (runLevel >= 1) {  // Advanced debugConsole setup
      });
 }
 
-if (runLevel >= 2) {   // Settings management
+if (runLevel >= 3) {   // Settings management
      function writeSettings(restart, stateUpdated) {
           var outSettings = settings;
           debugConsole.log("About to write settings...");
