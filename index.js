@@ -68,6 +68,9 @@ process.shutdown = function(exitCode) {
      process.exitCode = exitCode;
      process.emit("shutdown", exitCode);
 };
+process.on("shutdown", function() {
+     setTimeout(function() {process.exit();}, 100 * 5);
+});
 listenerRelay.addEmitter("PROCESS", process);
 commands.shutdown = process.shutdown;
 commands.startup = process.startup;
