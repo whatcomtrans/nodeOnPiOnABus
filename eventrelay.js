@@ -80,6 +80,11 @@ class eventRelay {
                _this.addWaiting(eventName, listener, true);
           }
      }
+     
+     every(eventName, listener, tracker) {
+          var _this = this;
+          // create a in between callback which intercepts the callback and only calls listener bases on rules of the tracker properties
+      }
 
      addWaiting(eventName, listener, once) {
           var _this = this;

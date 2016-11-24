@@ -2,7 +2,7 @@
 
 // index.js
 // WTA nodeOnPiOnABus
-// Version 3.1.0
+// Version 3.3.0
 // Last updated November 2016 by R. Josh Nylander
 //
 
@@ -10,8 +10,8 @@
 var doCheckGitVersion = false;
 
 // A run level allows us to quickly enable/disable sections of the script below
-// Each section should be ordered based on dependencies.  To run all, set run level to 10000.
-var runLevel = 10000;
+// Each section should be ordered based on dependencies.
+var runLevel = 0;
 
 // Requires
 const awsIoTThing = require("awsiotthing");
@@ -31,6 +31,7 @@ var argv = require('yargs')
           .choices('debugOutput', ['CONSOLEONLY', 'CONSOLEMQTT', 'MQTTONLY', 'NONE'])
           .coerce('debugOuput', function(arg) {return arg.toUpperCase();})
           .default('debugLevel', debugConsole.DEBUG)
+          .default('runLevel', 1000)
           .boolean('doCheckGitVersion')
           .default('doCheckGitVersion', doCheckGitVersion)
           .argv;
