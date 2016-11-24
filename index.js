@@ -319,6 +319,7 @@ if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
      listenerRelay.on("piThing.registered", function() {
           listenerRelay.on("GPS.rawdata", function (msgString) {
                if (msgString.indexOf(">RLN") > -1) {
+                    debugConsole.log("Found a RLN message, parsed as: " + JSON.stringify(gpsDevice.Parse(msgString)));
                     //SAMPLE RLN MESSAGE:
                     //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
                     awsClient.publish("/vehicles/GPS.RLN.message", msgString);
