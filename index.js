@@ -7,7 +7,7 @@
 //
 
 // TODO FOR DEBUGING LOCALLY ONLY
-var doCheckGitVersion = false;
+var doCheckGitVersion = true;
 
 // A run level allows us to quickly enable/disable sections of the script below
 // Each section should be ordered based on dependencies.
@@ -49,6 +49,7 @@ var commands = new Object();
  * of an event based model below.
 */
 const listenerRelay = require("./eventrelay").relayFactory();
+listenerRelay.logger = debugConsole;
 
 // Settings
 var awsConfig = require("../settings/awsclientconfig.json");
@@ -356,7 +357,7 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
      });
 }
 
-if (runLevel >= 40) {  // Rudementary GPS to DVR over TCP setup
+if (runLevel >= 41) {  // Rudementary GPS to DVR over TCP setup
      var tcpDVR = null;
      var newDVRs = ["831", "832", "833", "834", "835", "836", "837"];
      if (newDVRs.indexOf(piThing.getProperty("vehicleId")) > -1 ) {
@@ -392,7 +393,7 @@ if (runLevel >= 40) {  // Rudementary GPS to DVR over TCP setup
      }
 }
 
-if (runLevel >= 10) {  // Forward GPS to Farebox
+if (runLevel >= 42) {  // Forward GPS to Farebox
      var gpsRelayToFarebox = dgram.createSocket("udp4");
      gpsRelayToFarebox.bind(function() {
           gpsRelayToFarebox.setBroadcast(true);
