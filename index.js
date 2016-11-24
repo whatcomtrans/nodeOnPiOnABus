@@ -97,7 +97,7 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
           if (piThing != null) {
                if (stateUpdated === undefined) {
                     piThing.retrieveState(function () {
-                         writeSettings(true, true);
+                         writeSettings(restart, true);
                     });
                } else {
                     outSettings = piThing.getReported();
