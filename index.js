@@ -397,11 +397,11 @@ if (runLevel >= 42) {  // Forward GPS to Farebox
      var gpsRelayToFarebox = dgram.createSocket("udp4");
      gpsRelayToFarebox.bind(function() {
           gpsRelayToFarebox.setBroadcast(true);
-          listenerRelay.on("GPS.GLL", function(data) {
+          listenerRelay.every("GPS.GLL", function(data) {
                var message = new Buffer(data.raw);
-               gpsRelayToFarebox.send(message, 0, message.length, 5070, 'localhost',  function() {
+               gpsRelayToFarebox.send(message, 0, message.length, 5067, '192.168.1.255',  function() {
                   debugConsole.log("Broadcast on port '" + message + "'");
-              });
+             }, {method: "counter", dely: 10});
           });
      });
 }
