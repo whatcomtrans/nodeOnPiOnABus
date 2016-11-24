@@ -258,6 +258,7 @@ if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
 if (runLevel >= 20) {  // AWS IoT Client
      // Define global awsClient and have it configure on startup
      var awsClient = null;
+     var awsClientFirstConnect = true;
      listenerRelay.once("PROCESS.startup", function () {
           // Connect to AWS IoT
           // Determine my MAC address and use as clientId
@@ -270,17 +271,13 @@ if (runLevel >= 20) {  // AWS IoT Client
                awsClient = awsIoTThing.clientFactory(awsConfig);
                listenerRelay.addEmitter("AWSClient", awsClient);
           });
-     });
-     // Track status of connection
-     var awsClientConnected= false;
-     listenerRelay.on("AWSClient.connect", function() {
-          awsClientConnected= true;
-     });
-     listenerRelay.on("AWSClient.close", function() {
-          awsClientConnected= false;
-     });
-     listenerRelay.on("AWSClient.offline", function() {
-          awsClientConnected= false;
+          listenerRelay.once("AWSClient.connect", function() {
+               // Connect gets fired a lot but I need one emit which only fires first time
+               if (awsClientFirstConnect) {
+                    awsClientFirstConnect = false;
+                    awsClient.emit("firstConnect");
+               }
+          })
      });
 }
 
@@ -291,8 +288,8 @@ if (runLevel >= 21) {  // MQTT remote command processing support
           global.f = new Function("commands", code);
           f.call(commands, commands);
      }
-     listenerRelay.once("AWSClient.connect", function() {
-          piThing.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
+     listenerRelay.once("AWSClient.firstConnect", function() {
+          awsClient.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
                if (err) {
                     debugConsole.log("Error subscribing: " + err);
                } else {
@@ -308,7 +305,7 @@ if (runLevel >= 21) {  // MQTT remote command processing support
                }
           });
 
-          piThing.subscribe("/vehicles/pi/commands", {"qos": 0}, function(err, granted) {
+          awsClient.subscribe("/vehicles/pi/commands", {"qos": 0}, function(err, granted) {
                if (err) {
                     debugConsole.log("Error subscribing: " + err);
                } else {
@@ -328,7 +325,7 @@ if (runLevel >= 21) {  // MQTT remote command processing support
 }
 
 if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
-     listenerRelay.on("AWSClient.connect", function() {          listenerRelay.on("GPS.RLN", function (data) {
+     listenerRelay.on("AWSClient.firstConnect", function() {          listenerRelay.on("GPS.RLN", function (data) {
                awsClient.publish("/vehicles/GPS.RLN.message", data.raw);
           });
      });
@@ -337,7 +334,7 @@ if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
 if (runLevel >= 30) {  // AWS IoT thing representing this Pi
      // Add the piThing
      var piThing = null;
-     listenerRelay.once("AWSClient.connect", function(err, client) {
+     listenerRelay.once("AWSClient.firstConnect", function(err, client) {
           // Create piThing
           debugConsole.log("About to create piThing");
           awsClient.thingFactory("pi" + settings.vehicleId, {"persistentSubscribe": true}, false, function(err, thing) {
