@@ -38,9 +38,9 @@ class debugConsole extends EventEmitter {
           }
 
           if (level === undefined) {
-               _this._debugLevel = _this.INFO;
+               _this._defaultLogLevel = _this.DEBUG;
           } else {
-               _this._debugLevel = level;
+               _this._defaultLogLevel = level;
           }
 
           _this._mqttTopic = null;
@@ -50,7 +50,7 @@ class debugConsole extends EventEmitter {
      log (message, level, debugOutput) {
           var _this = this;
           if (level  === undefined) {
-               level = _this._debugLevel;
+               level = _this._defaultLogLevel;
           }
           if (debugOutput === undefined) {
                debugOutput = _this._debugOutput;
