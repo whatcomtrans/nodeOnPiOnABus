@@ -61,7 +61,7 @@ class eventRelay {
           var _this = this;
           var prefix = eventName.split(".", 2)[0];
           var localEventName = eventName.split(".", 2)[1];
-          _this._logger.log("Recieved on for prefix " + prefix + " with event name " + localEventName);
+          _this._logger.log("Recieved ON for prefix " + prefix + " with event name " + localEventName);
           if (_this._emitters.has(prefix)) {
                _this._emitters.get(prefix).on(localEventName, listener);
           } else {
@@ -73,7 +73,7 @@ class eventRelay {
           var _this = this;
           var prefix = eventName.split(".", 2)[0];
           var localEventName = eventName.split(".", 2)[1];
-          _this._logger.log("Recieved once for prefix " + prefix + " with event name " + localEventName);
+          _this._logger.log("Recieved ONCE for prefix " + prefix + " with event name " + localEventName);
           if (_this._emitters.has(prefix)) {
                _this._emitters.get(prefix).once(localEventName, listener);
           } else {
