@@ -96,7 +96,7 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
                restart = false;
           }
           if (piThing != null) {
-               if (stateUpdated === undefined) {
+               if (stateUpdated === undefined || stateUpdated == false) {
                     piThing.retrieveState(function () {
                          writeSettings(restart, true);
                     });
@@ -251,6 +251,7 @@ if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
           // is vehicleID different then current settings
           if (id != settings.vehicleId) {
                debugConsole.log("Updating vehicleId from " + settings.vehicleId + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
+               settings.vehicleId = id;
                writeSettings(true);
           }
      });
@@ -414,7 +415,7 @@ if (runLevel >= 42) {  // Forward GPS to Farebox
           listenerRelay.every("GPS.GLL", function(data) {
                var message = new Buffer(data.raw);
                gpsRelayToFarebox.send(message, 0, message.length, 5067, '192.168.1.255',  function() {
-                  debugConsole.log("Broadcast on port '" + message + "'");
+                  debugConsole.log("Broadcast '" + message + "'");
              }, {method: "counter", dely: 10});
           });
      });
