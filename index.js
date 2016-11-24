@@ -398,7 +398,7 @@ if (runLevel >= 10) {  // Forward GPS to Farebox
           gpsRelayToFarebox.setBroadcast(true);
           listenerRelay.on("GPS.GLL", function(data) {
                var message = new Buffer(data.raw);
-               gpsRelayToFarebox.send(message, 0, message.length, 5068, 'localhost',  function() {
+               gpsRelayToFarebox.send(message, 0, message.length, 5070, 'localhost',  function() {
                   debugConsole.log("Broadcast on port '" + message + "'");
               });
           });
