@@ -20,7 +20,6 @@ const exec = require('child_process').exec;
 const jsonfile = require('jsonfile');
 const net = require('net');
 const dgram = require("dgram");
-const Netmask = require('netmask').Netmask
 var debugConsole = require("./debugconsole").consoleFactory();
 var gpsDevice = require("./gpsdevice").gpsFactory();
 
