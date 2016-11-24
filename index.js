@@ -244,7 +244,8 @@ if (runLevel >= 11) {
 
 if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
      // Detect vehicleID and set it, updating settings as we go.
-     listenerRelay.once("GPS.RLN", function(msgString) {
+     listenerRelay.once("GPS.RLN", function(data) {
+          var msgString = data.raw;
           var id = msgString.substr((msgString.indexOf(";ID=")+5),3);
           // is vehicleID different then current settings
           if (id != settings.vehicleId) {
