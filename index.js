@@ -19,6 +19,7 @@ const fs = require('fs');
 const exec = require('child_process').exec;
 const jsonfile = require('jsonfile');
 const net = require('net');
+const dgram = require("dgram");
 var debugConsole = require("./debugconsole").consoleFactory();
 var gpsDevice = require("./gpsdevice").gpsFactory();
 
@@ -381,7 +382,7 @@ if (runLevel >= 40) {  // Rudementary GPS to DVR over TCP setup
                          debugConsole.log("Connection to DVR closed.")
                     }
                });
-               listenerRelay.on("RMC", function(data){
+               listenerRelay.on("GPS.RMC", function(data){
                     var msg = data.raw;
                     debugConsole.log("Sending data to DVR: " + msg);
                     piThing.reportProperty("dvrGPSmsg", msg, true);
@@ -389,6 +390,19 @@ if (runLevel >= 40) {  // Rudementary GPS to DVR over TCP setup
                });
           });
      }
+}
+
+if (runLevel >= 10) {  // Forward GPS to Farebox
+     var gpsRelayToFarebox = dgram.createSocket("udp4");
+     gpsRelayToFarebox.bind(5068, 'localhost', function() {
+          gpsRelayToFarebox.setBroadcast(true);
+          listenerRelay.on("GPS.GLL", function(data) {
+               var message = new Buffer(data.rawdata);
+               gpsRelayToFarebox.send(message, 0, message.length, function() {
+                  debugConsole.log("Broadcast on port '" + message + "'");
+              });
+          });
+     });
 }
 
 // Ok, lets get this started

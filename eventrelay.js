@@ -2,7 +2,7 @@
 
 class eventRelay {
 
-	constructor () { 
+	constructor () {
     	//super();
 		var _this = this;
 		_this._logger = console;
@@ -80,32 +80,54 @@ class eventRelay {
                _this.addWaiting(eventName, listener, true);
           }
      }
-     
+
      every(eventName, listener, tracker) {
           var _thisRelay = this;
           // create a in between callback which intercepts the callback and only calls listener bases on rules of the tracker properties
-          if (tracker === undefinded) {  // Treat as on
+          if (tracker === undefined) {  // Treat as on
+			_thisRelay._logger.log("No tracker passed to every method");
                _thisRelay.on(eventName, listener);
           } else {
+			_thisRelay._logger.log("Adding custom listener with tracker of method: " + tracker.method);
                _thisRelay.on(eventName, function() {
                     var _this = this;
                     var _thisTracker = tracker;
                     var _theRelay = _thisRelay;
+				// _theRelay._logger.log("Callback called, processing 'every' tracker");
                     // TODO
                     // Buid out a set of if syatememts that use the tracker
-                    switch _thisTracker.method {
-                         case 'counter':
-                              if (_thisTracker.currentCount === undefined) {_thisTracker.currentCount = 0;}
-                              if (_thisTracker.currentCount < _thisTracker.count) {
-                              _thisTracker.count = _thisTracker.count + 1;
-                              } else {
-                              listener.apply(_this, arguments);
-_thisTracker.currentCount = 0;
-                              break;
-                         case default:
-                			listener.apply(_this, arguments);
-                								break;
-                			}
+                    switch (_thisTracker.method) {
+					case 'counter':
+						// _theRelay._logger.log("In 'every' tracker of method 'counter', count = " + _thisTracker.count + ", currentCount = " + _thisTracker.currentCount);
+						if (_thisTracker.currentCount === undefined) {
+							_thisTracker.currentCount = 1;
+							// _theRelay._logger.log("In 'every' tracker of method 'counter', count = " + _thisTracker.count + ", currentCount NOW = " + _thisTracker.currentCount);
+						}
+						if (_thisTracker.currentCount < _thisTracker.count) {
+							_thisTracker.currentCount = _thisTracker.currentCount + 1;
+						} else {
+							listener.apply(_this, arguments);
+							_thisTracker.currentCount = 0;
+						}
+						break;
+					case "timer":
+						var currentTime = (new Date()).valueOf();
+						// _theRelay._logger.log("In 'every' tracker of method 'timer', delay = " + _thisTracker.delay + ", lastTime = " + _thisTracker.lastTime + ", currentTime = " + currentTime);
+						if (_thisTracker.lastTime === undefined) {
+							_thisTracker.lastTime = currentTime;
+							// _theRelay._logger.log("In 'every' tracker of method 'timer', delay = " + _thisTracker.delay + ", lastTime = " + _thisTracker.lastTime + ", currentTime NOW = " + currentTime);
+						}
+						if (currentTime < (_thisTracker.lastTime + _thisTracker.delay)) {
+							// Do nothing
+						} else {
+							listener.apply(_this, arguments);
+							_thisTracker.lastTime = currentTime;
+						}
+						break;
+					default:
+						listener.apply(_this, arguments);
+						break;
+				}
                });
           }
       }

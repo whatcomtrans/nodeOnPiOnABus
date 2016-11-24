@@ -2,7 +2,7 @@
 
 const dgram = require("dgram");
 const net = require('net');
-const GPS = require('gps');
+const GPS = require('gps');  // https://github.com/infusion/GPS.js
 const EventEmitter = require('events');
 
 class gpsDevice extends EventEmitter {
