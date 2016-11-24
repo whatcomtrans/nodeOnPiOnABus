@@ -82,8 +82,32 @@ class eventRelay {
      }
      
      every(eventName, listener, tracker) {
-          var _this = this;
+          var _thisRelay = this;
           // create a in between callback which intercepts the callback and only calls listener bases on rules of the tracker properties
+          if (tracker === undefinded) {  // Treat as on
+               _thisRelay.on(eventName, listener);
+          } else {
+               _thisRelay.on(eventName, function() {
+                    var _this = this;
+                    var _thisTracker = tracker;
+                    var _theRelay = _thisRelay;
+                    // TODO
+                    // Buid out a set of if syatememts that use the tracker
+                    switch _thisTracker.method {
+                         case 'counter':
+                              if (_thisTracker.currentCount === undefined) {_thisTracker.currentCount = 0;}
+                              if (_thisTracker.currentCount < _thisTracker.count) {
+                              _thisTracker.count = _thisTracker.count + 1;
+                              } else {
+                              listener.apply(_this, arguments);
+_thisTracker.currentCount = 0;
+                              break;
+                         case default:
+                			listener.apply(_this, arguments);
+                								break;
+                			}
+               });
+          }
       }
 
      addWaiting(eventName, listener, once) {
