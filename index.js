@@ -2,12 +2,12 @@
 
 // index.js
 // WTA nodeOnPiOnABus
-// Version 3.3.5
+// Version 3.4.0
 // Last updated November 2016 by R. Josh Nylander
 //
 
 // TODO FOR DEBUGING LOCALLY ONLY
-var doCheckGitVersion = false;
+var doCheckGitVersion = true;
 
 // A run level allows us to quickly enable/disable sections of the script below
 // Each section should be ordered based on dependencies.
@@ -412,7 +412,7 @@ if (runLevel >= 42) {  // Forward GPS to Farebox
           gpsRelayToFarebox.setBroadcast(true);
           listenerRelay.every("GPS.GLL", function(data) {
                var message = new Buffer(data.raw);
-               gpsRelayToFarebox.send(message, 0, message.length, 5067, "localhost",  function() {
+               gpsRelayToFarebox.send(message, 0, message.length, 5067, "192.168.1.255",  function() {
                   debugConsole.log("Broadcast '" + message + "'");
              }, {method: "counter", dely: 10});
           });
