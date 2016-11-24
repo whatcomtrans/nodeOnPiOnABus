@@ -84,7 +84,38 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
      debugConsole.debugLevel = argv.debugLevel  // debugConsole.DEBUG;
 }
 
-if (runLevel >= 2) {  // Advanced debugConsole setup
+if (runLevel >= 3) {   // Settings management
+     function writeSettings(restart, stateUpdated) {
+          var outSettings = settings;
+          debugConsole.log("About to write settings...");
+          if (restart === undefined) {
+               restart = false;
+          }
+          if (piThing != null) {
+               if (stateUpdated === undefined) {
+                    piThing.retrieveState(function () {
+                         writeSettings(true, true);
+                    });
+               } else {
+                    outSettings = piThing.getReported();
+               }
+          }
+          jsonfile.writeFile("../settings/settings.json", outSettings, function (err) {
+               if (err) {
+                    console.error(err);
+               } else {
+                    // TODO should add an emit here but not sure what emitter to use
+                    if (restart) {
+                         //exit and Restart
+                         process.shutdown();
+                    }
+               }
+          });
+     }
+     commands.writeSettings = writeSettings;
+}
+
+if (runLevel >= 4) {  // Advanced debugConsole setup
      // Apply settings to debugConsole
      debugConsole.apply(settings);
      if ("debugTopic" in settings) {
@@ -127,37 +158,6 @@ if (runLevel >= 2) {  // Advanced debugConsole setup
                writeSettings();
           });
      });
-}
-
-if (runLevel >= 3) {   // Settings management
-     function writeSettings(restart, stateUpdated) {
-          var outSettings = settings;
-          debugConsole.log("About to write settings...");
-          if (restart === undefined) {
-               restart = false;
-          }
-          if (piThing != null) {
-               if (stateUpdated === undefined) {
-                    piThing.retrieveState(function () {
-                         writeSettings(true, true);
-                    });
-               } else {
-                    outSettings = piThing.getReported();
-               }
-          }
-          jsonfile.writeFile("../settings/settings.json", outSettings, function (err) {
-               if (err) {
-                    console.error(err);
-               } else {
-                    // TODO should add an emit here but not sure what emitter to use
-                    if (restart) {
-                         //exit and Restart
-                         process.shutdown();
-                    }
-               }
-          });
-     }
-     commands.writeSettings = writeSettings;
 }
 
 if (runLevel >= 5) {   // Git versioning
