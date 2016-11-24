@@ -20,6 +20,7 @@ const exec = require('child_process').exec;
 const jsonfile = require('jsonfile');
 const net = require('net');
 const dgram = require("dgram");
+const Netmask = require('netmask').Netmask
 var debugConsole = require("./debugconsole").consoleFactory();
 var gpsDevice = require("./gpsdevice").gpsFactory();
 
@@ -128,8 +129,6 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
           debugConsole.mqttTopic = settings.debugTopic;
      }
      debugConsole.log("Initial settings: " + JSON.stringify(settings), debugConsole.INFO);
-     commands.log = debugConsole.log;
-     commands.debugConsole = debugConsole;
      listenerRelay.addEmitter("LOGGER", debugConsole);
      listenerRelay.on("piThing.registered", function() {
           debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
@@ -163,6 +162,7 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
                debugConsole.debugOutput = piThing.getDeltaProperty("debugLevel");
           }
      });
+     commands.debugConsole = debugConsole;
 }
 
 if (runLevel >= 5) {   // Git versioning
@@ -413,7 +413,7 @@ if (runLevel >= 42) {  // Forward GPS to Farebox
           gpsRelayToFarebox.setBroadcast(true);
           listenerRelay.every("GPS.GLL", function(data) {
                var message = new Buffer(data.raw);
-               gpsRelayToFarebox.send(message, 0, message.length, 5067, '192.168.1.255',  function() {
+               gpsRelayToFarebox.send(message, 0, message.length, 5067, (new Netmask("192.168.1.129")).broadcast,  function() {
                   debugConsole.log("Broadcast '" + message + "'");
              }, {method: "counter", dely: 10});
           });
