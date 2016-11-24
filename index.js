@@ -231,9 +231,20 @@ if (runLevel >= 10) {   // GPS lisener
      });
 }
 
-if (runLevel >= 11) {  // Changing vehicleID based on RLN from GPS
+if (runLevel >= 11) {
+     listenerRelay.on("GPS.rawdata", function (msgString) {
+          if (msgString.indexOf(">RLN") > -1) {
+               debugConsole.log("Found a RLN message: " + msgString)  //, parsed as: " + JSON.stringify(gpsDevice.Parse(msgString)));
+               //SAMPLE RLN MESSAGE:
+               //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
+               gpsDevice.emit("RLN", {raw: msgString});
+          }
+     });
+}
+
+if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
      // Detect vehicleID and set it, updating settings as we go.
-     listenerRelay.once("GPS.RLN.message", function(msgString) {
+     listenerRelay.once("GPS.RLN", function(msgString) {
           var id = msgString.substr((msgString.indexOf(";ID=")+5),3);
           // is vehicleID different then current settings
           if (id != settings.vehicleId) {
@@ -317,13 +328,8 @@ if (runLevel >= 21) {  // MQTT remote command processing support
 
 if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
      listenerRelay.on("piThing.registered", function() {
-          listenerRelay.on("GPS.rawdata", function (msgString) {
-               if (msgString.indexOf(">RLN") > -1) {
-                    debugConsole.log("Found a RLN message, parsed as: " + JSON.stringify(gpsDevice.Parse(msgString)));
-                    //SAMPLE RLN MESSAGE:
-                    //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
-                    awsClient.publish("/vehicles/GPS.RLN.message", msgString);
-               }
+          listenerRelay.on("GPS.RLN", function (msgString) {
+               awsClient.publish("/vehicles/GPS.RLN.message", msgString);
           });
      });
 }
