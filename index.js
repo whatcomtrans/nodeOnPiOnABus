@@ -17,9 +17,10 @@ var runLevel = 1;
 const awsIoTThing = require("awsiotthing");
 const fs = require('fs');
 const exec = require('child_process').exec;
-const jsonfile = require('jsonfile');
+const jsonfile = require('jsonfile');  // May no longer be needed
 const net = require('net');
 const dgram = require("dgram");
+const thingSettings = require("./thingpiThing.js");
 var debugConsole = require("./debugconsole").consoleFactory();
 var gpsDevice = require("./gpsdevice").gpsFactory();
 
@@ -50,12 +51,6 @@ var commands = new Object();
 */
 const listenerRelay = require("./eventrelay").relayFactory();
 listenerRelay.logger = debugConsole;
-
-// Settings
-var awsConfig = require("../settings/awsclientconfig.json");
-var settings = require("../settings/settings.json");
-
-debugConsole.log("Settings loaded.  Configuring with runLevel " + runLevel + ".");
 
 // Extend the process object to support a startup and shutdown event model
 process.startup = function() {
@@ -88,9 +83,20 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
      debugConsole.debugLevel = argv.debugLevel  // debugConsole.DEBUG;
 }
 
+if (runLevel >= 3) {   // Settings management
+     var piThing = new thingSettings("../settings/settings.json", argv);
+     debugConsole.log("Settings loaded.  Configuring with runLevel " + runLevel + ".");
+
 //if (runLevel >= 3) {   // Settings management
-     function writeSettings (restart, stateUpdated, ignorePiThing) {
-          var outSettings = settings;
+     function writeSettings (restart) {
+          if (restart === undefined || restart == false) {
+               piThing.writeSettings();
+          } else {
+               piThing.writeSettings(function() {
+                    process.shutdown();
+               });
+          }
+/*         var outSettings = settings;
           debugConsole.log("About to write settings...");
           if (restart === undefined) {
                restart = false;
@@ -117,17 +123,18 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
                     }
                }
           });
+     */
      }
      commands.writeSettings = writeSettings;
-//}
+}
 
 if (runLevel >= 4) {  // Advanced debugConsole setup
      // Apply settings to debugConsole
-     debugConsole.apply(settings);
-     if ("debugTopic" in settings) {
-          debugConsole.mqttTopic = settings.debugTopic;
+     debugConsole.apply(piThing);
+     if ("debugTopic" in piThing) {
+          debugConsole.mqttTopic = piThing.debugTopic;
      }
-     debugConsole.log("Initial settings: " + JSON.stringify(settings), debugConsole.INFO);
+     debugConsole.log("Initial settings: " + JSON.stringify(piThing), debugConsole.INFO);
      listenerRelay.addEmitter("LOGGER", debugConsole);
      listenerRelay.on("piThing.registered", function() {
           debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
@@ -223,7 +230,7 @@ if (runLevel >= 10) {   // GPS lisener
      gpsDevice.logger = debugConsole;
      commands.gpsDevice = gpsDevice;
      listenerRelay.addEmitter("GPS", gpsDevice);
-     gpsDevice.listen({source: "udp", "udpPort": settings.GPSudpPort});
+     gpsDevice.listen({source: "udp", "udpPort": piThing.GPSudpPort});
      listenerRelay.on("PROCESS.shutdown", function() {
           debugConsole.log("Exiting... Stopping gpsDevice", debugConsole.INFO);
           gpsDevice.stop();
@@ -247,18 +254,21 @@ if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
           var msgString = data.raw;
           var id = msgString.substr((msgString.indexOf(";ID=")+5),3);
           // is vehicleID different then current settings
-          if (id != settings.vehicleId) {
-               debugConsole.log("Updating vehicleId from " + settings.vehicleId + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
-               settings.vehicleId = id;
-               writeSettings(true, false, true);
+          if (id != piThing.vehicleId) {
+               debugConsole.log("Updating vehicleId from " + piThing.vehicleId + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
+               piThing.vehicleId = id;
+               writeSettings(true);
           }
      });
 }
 
 if (runLevel >= 20) {  // AWS IoT Client
      // Define global awsClient and have it configure on startup
+     var awsConfig = require("../settings/awsclientconfig.json");
+
      var awsClient = null;
      var awsClientFirstConnect = true;
+     awsIoTThing.setLogger(debugConsole);
      listenerRelay.once("PROCESS.startup", function () {
           // Connect to AWS IoT
           // Determine my MAC address and use as clientId
@@ -266,7 +276,7 @@ if (runLevel >= 20) {  // AWS IoT Client
           require('getmac').getMac(function (err, mac) {
                if (err)  throw err
                awsConfig.clientId = "nodeOnPiOnABus-client-" + mac;
-               settings.macAddress = mac;
+               piThing.macAddress = mac;
                debugConsole.log("Creating awsClient with clientId of " + awsConfig.clientId, debugConsole.INFO);
                awsClient = awsIoTThing.clientFactory(awsConfig);
                listenerRelay.addEmitter("AWSClient", awsClient);
@@ -337,24 +347,20 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
      listenerRelay.once("AWSClient.firstConnect", function(err, client) {
           // Create piThing
           debugConsole.log("About to create piThing");
-          awsClient.thingFactory("pi" + settings.vehicleId, {"persistentSubscribe": true}, false, function(err, thing) {
-               piThing = thing;
+          awsClient.thingFactory("pi" + piThing.vehicleId, {"persistentSubscribe": true}, false, function(err, thing) {
+               piThing = piThing.copyTo(thing);
                listenerRelay.addEmitter("piThing", thing);
-               commands.piThing = thing;
+               commands.piThing = piThing;
                if (err) {
                     debugConsole.log("Error: " + err);
                }
-               debugConsole.log(JSON.stringify(thing));
+               debugConsole.log(JSON.stringify(piThing));
                debugConsole.log("thing created");
                // Handle connection status changes
                thing.register(function() {
                     thing.emit("registered");
                     debugConsole.log("thing registered");
                     thing.retrieveState(function(){
-                         var propName;
-                         for (propName in settings) {
-                              thing.reportProperty(propName, settings[propName], true);
-                         }
                          thing.reportState();
                     });
                });
@@ -370,7 +376,7 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
 if (runLevel >= 41) {  // Rudementary GPS to DVR over TCP setup
      var tcpDVR = null;
      var newDVRs = ["831", "832", "833", "834", "835", "836", "837"];
-     if (newDVRs.indexOf(settings.vehicleId) > -1 ) {
+     if (newDVRs.indexOf(piThing.vehicleId) > -1 ) {
           listenerRelay.on("PROCESS.shutdown", function() {
                if (tcpDVR != null) {
                     debugConsole.log("Exiting... Stopping tcpDVR stream", debugConsole.INFO);
