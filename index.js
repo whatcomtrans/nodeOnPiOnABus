@@ -7,7 +7,7 @@
 //
 
 // TODO FOR DEBUGING LOCALLY ONLY
-var doCheckGitVersion = true;
+var doCheckGitVersion = false;
 
 // A run level allows us to quickly enable/disable sections of the script below
 // Each section should be ordered based on dependencies.
