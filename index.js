@@ -413,7 +413,7 @@ if (runLevel >= 42) {  // Forward GPS to Farebox
           gpsRelayToFarebox.setBroadcast(true);
           listenerRelay.every("GPS.GLL", function(data) {
                var message = new Buffer(data.raw);
-               gpsRelayToFarebox.send(message, 0, message.length, 5067, (new Netmask("192.168.1.129")).broadcast,  function() {
+               gpsRelayToFarebox.send(message, 0, message.length, 5067, "localhost",  function() {
                   debugConsole.log("Broadcast '" + message + "'");
              }, {method: "counter", dely: 10});
           });
