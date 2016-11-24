@@ -394,11 +394,11 @@ if (runLevel >= 40) {  // Rudementary GPS to DVR over TCP setup
 
 if (runLevel >= 10) {  // Forward GPS to Farebox
      var gpsRelayToFarebox = dgram.createSocket("udp4");
-     gpsRelayToFarebox.bind(5068, 'localhost', function() {
+     gpsRelayToFarebox.bind(function() {
           gpsRelayToFarebox.setBroadcast(true);
           listenerRelay.on("GPS.GLL", function(data) {
                var message = new Buffer(data.raw);
-               gpsRelayToFarebox.send(message, 0, message.length, function() {
+               gpsRelayToFarebox.send(message, 0, message.length, 5068, 'localhost',  function() {
                   debugConsole.log("Broadcast on port '" + message + "'");
               });
           });
