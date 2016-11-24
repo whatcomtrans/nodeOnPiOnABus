@@ -69,6 +69,7 @@ process.shutdown = function(exitCode) {
      process.emit("shutdown", exitCode);
 };
 process.on("shutdown", function() {
+     //Failsafe to eventually exit
      setTimeout(function() {process.exit();}, 100 * 30);
 });
 listenerRelay.addEmitter("PROCESS", process);
@@ -88,7 +89,7 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
 }
 
 //if (runLevel >= 3) {   // Settings management
-     var writeSettings = function(restart, stateUpdated) {
+     function writeSettings (restart, stateUpdated) {
           var outSettings = settings;
           debugConsole.log("About to write settings...");
           if (restart === undefined) {
@@ -110,7 +111,7 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
                     // TODO should add an emit here but not sure what emitter to use
                     if (restart) {
                          //exit and Restart
-                         process.shutdown();
+                         setTimeout(function() {process.shutdown();}, 100);
                     }
                }
           });
