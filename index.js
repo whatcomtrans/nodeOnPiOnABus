@@ -2,7 +2,7 @@
 
 // index.js
 // WTA nodeOnPiOnABus
-// Version 3.3.0
+// Version 3.3.5
 // Last updated November 2016 by R. Josh Nylander
 //
 
@@ -128,10 +128,7 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
           debugConsole.mqttTopic = settings.debugTopic;
      }
      debugConsole.log("Initial settings: " + JSON.stringify(settings), debugConsole.INFO);
-     commands.mqttConsole = debugConsole.mqttConsole;
      commands.log = debugConsole.log;
-     commands.setDebugOutput = debugConsole.setDebugOutput;
-     commands.setDebugLevel = debugConsole.setDebugLevel;
      commands.debugConsole = debugConsole;
      listenerRelay.addEmitter("LOGGER", debugConsole);
      listenerRelay.on("piThing.registered", function() {
@@ -295,7 +292,7 @@ if (runLevel >= 21) {  // MQTT remote command processing support
           global.f = new Function("commands", code);
           f.call(commands, commands);
      }
-     listenerRelay.once("", function() {
+     listenerRelay.once("piThing.registered", function() {
           piThing.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
                if (err) {
                     debugConsole.log("Error subscribing: " + err);
