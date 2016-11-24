@@ -360,7 +360,7 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
 if (runLevel >= 41) {  // Rudementary GPS to DVR over TCP setup
      var tcpDVR = null;
      var newDVRs = ["831", "832", "833", "834", "835", "836", "837"];
-     if (newDVRs.indexOf(settings.getProperty("vehicleId")) > -1 ) {
+     if (newDVRs.indexOf(settings.vehicleId) > -1 ) {
           listenerRelay.on("PROCESS.shutdown", function() {
                if (tcpDVR != null) {
                     debugConsole.log("Exiting... Stopping tcpDVR stream", debugConsole.INFO);
