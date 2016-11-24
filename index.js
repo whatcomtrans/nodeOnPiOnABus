@@ -328,8 +328,7 @@ if (runLevel >= 21) {  // MQTT remote command processing support
 }
 
 if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
-     listenerRelay.once("AWSClient.connect", function() {
-          listenerRelay.on("GPS.RLN", function (data) {
+     listenerRelay.on("AWSClient.connect", function() {          listenerRelay.on("GPS.RLN", function (data) {
                awsClient.publish("/vehicles/GPS.RLN.message", data.raw);
           });
      });
