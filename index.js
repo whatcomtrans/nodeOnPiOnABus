@@ -134,6 +134,24 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
      listenerRelay.on("piThing.registered", function() {
           debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
           debugConsole.mqttAgent = piThing;
+
+          // write out settings file when these are changed
+          debugConsole.on("changed.debugOutput", function(value) {
+               piThing.reportProperty("debugOutput", value, false, function() {
+                    writeSettings();
+               });
+          });
+          debugConsole.on("changed.debugLevel", function(value) {
+               piThing.reportProperty("debugLevel", value, false, function() {
+                    writeSettings();
+               });
+          });
+          debugConsole.on("changed.mqttTopic", function(value) {
+               piThing.reportProperty("debugTopic", value, false, function() {
+                    writeSettings();
+               });
+          });
+
      });
      listenerRelay.on("piThing.delta", function(state) {
           if (piThing.getDeltaProperty("debugOutput") != null) {
@@ -144,22 +162,6 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
                debugConsole.log("Changing debugLevel to: " + piThing.getDeltaProperty("debugLevel"), debugConsole.INFO);
                debugConsole.debugOutput = piThing.getDeltaProperty("debugLevel");
           }
-     });
-     // write out settings file when these are changed
-     debugConsole.on("changed.debugOutput", function(value) {
-          piThing.reportProperty("debugOutput", value, false, function() {
-               writeSettings();
-          });
-     });
-     debugConsole.on("changed.debugLevel", function(value) {
-          piThing.reportProperty("debugLevel", value, false, function() {
-               writeSettings();
-          });
-     });
-     debugConsole.on("changed.mqttTopic", function(value) {
-          piThing.reportProperty("debugTopic", value, false, function() {
-               writeSettings();
-          });
      });
 }
 
