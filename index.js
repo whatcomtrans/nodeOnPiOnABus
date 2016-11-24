@@ -84,8 +84,8 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
      debugConsole.debugLevel = argv.debugLevel  // debugConsole.DEBUG;
 }
 
-if (runLevel >= 3) {   // Settings management
-     function writeSettings(restart, stateUpdated) {
+//if (runLevel >= 3) {   // Settings management
+     var writeSettings = function(restart, stateUpdated) {
           var outSettings = settings;
           debugConsole.log("About to write settings...");
           if (restart === undefined) {
@@ -113,7 +113,7 @@ if (runLevel >= 3) {   // Settings management
           });
      }
      commands.writeSettings = writeSettings;
-}
+//}
 
 if (runLevel >= 4) {  // Advanced debugConsole setup
      // Apply settings to debugConsole
