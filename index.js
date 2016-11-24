@@ -291,7 +291,7 @@ if (runLevel >= 21) {  // MQTT remote command processing support
           global.f = new Function("commands", code);
           f.call(commands, commands);
      }
-     listenerRelay.once("piThing.registered", function() {
+     listenerRelay.once("AWSClient.connect", function() {
           piThing.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
                if (err) {
                     debugConsole.log("Error subscribing: " + err);
@@ -328,7 +328,7 @@ if (runLevel >= 21) {  // MQTT remote command processing support
 }
 
 if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
-     listenerRelay.on("piThing.registered", function() {
+     listenerRelay.once("piThing.registered", function() {
           listenerRelay.on("GPS.RLN", function (data) {
                awsClient.publish("/vehicles/GPS.RLN.message", data.raw);
           });
@@ -340,6 +340,7 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
      var piThing = null;
      listenerRelay.once("AWSClient.connect", function(err, client) {
           // Create piThing
+          debugConsole.log("About to create piThing");
           awsClient.thingFactory("pi" + settings.vehicleId, {"persistentSubscribe": true}, false, function(err, thing) {
                piThing = thing;
                listenerRelay.addEmitter("piThing", thing);
