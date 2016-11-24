@@ -89,19 +89,21 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
 }
 
 //if (runLevel >= 3) {   // Settings management
-     function writeSettings (restart, stateUpdated) {
+     function writeSettings (restart, stateUpdated, ignorePiThing) {
           var outSettings = settings;
           debugConsole.log("About to write settings...");
           if (restart === undefined) {
                restart = false;
           }
-          if (piThing != null) {
-               if (stateUpdated === undefined || stateUpdated == false) {
-                    piThing.retrieveState(function () {
-                         writeSettings(restart, true);
-                    });
-               } else {
-                    outSettings = piThing.getReported();
+          if (ignorePiThing === undefined || ignorePiThing == false) {
+               if (piThing != null) {
+                    if (stateUpdated === undefined || stateUpdated == false) {
+                         piThing.retrieveState(function () {
+                              writeSettings(restart, true);
+                         });
+                    } else {
+                         outSettings = piThing.getReported();
+                    }
                }
           }
           jsonfile.writeFile("../settings/settings.json", outSettings, function (err) {
@@ -252,7 +254,7 @@ if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
           if (id != settings.vehicleId) {
                debugConsole.log("Updating vehicleId from " + settings.vehicleId + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
                settings.vehicleId = id;
-               writeSettings(true);
+               writeSettings(true, false, true);
           }
      });
 }
