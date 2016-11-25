@@ -212,7 +212,7 @@ if (runLevel >= 5) {   // Git versioning
                                              if (error) {
                                                   console.error(`exec error: ${error}`);
                                              } else {
-                                                  piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {commands.exit();});
+                                                  piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {writeSettings(true);});
                                              }
                                         });
                                    });
