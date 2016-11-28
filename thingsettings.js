@@ -15,9 +15,10 @@ module.exports = class thingSettings extends EventEmitter {
           _this._desired = new Object();
 
           if (fileName === undefined) {
-               fileName = null;
+               _this._fileName = null;
+          } else {
+               _this._fileName = filename;
           }
-          _this._fileName = filename;
 
           if (initialSettings === undefined) {
                _this._local = new Object();
