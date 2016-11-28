@@ -230,7 +230,7 @@ if (runLevel >= 10) {   // GPS lisener
      gpsDevice.logger = debugConsole;
      commands.gpsDevice = gpsDevice;
      listenerRelay.addEmitter("GPS", gpsDevice);
-     gpsDevice.listen({source: "udp", "udpPort": piThing.getProperty("GPSudpPort"});
+     gpsDevice.listen({source: "udp", "udpPort": piThing.getProperty("GPSudpPort")});
      listenerRelay.on("PROCESS.shutdown", function() {
           debugConsole.log("Exiting... Stopping gpsDevice", debugConsole.INFO);
           gpsDevice.stop();
