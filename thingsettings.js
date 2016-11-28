@@ -30,7 +30,7 @@ module.exports = class thingSettings extends EventEmitter {
                if (fs.existsSync(_this._fileName)) {
                     var settingsFromFile = require(_this._fileName);
                     console.log ("settingsFromFile: " + JSON.stringify(settingsFromFile));
-                    Object.assign(settingsFromFile, _this._local);
+                    Object.assign(_this._local, settingsFromFile);
                }
           }
      }
