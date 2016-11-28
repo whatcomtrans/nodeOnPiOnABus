@@ -225,7 +225,7 @@ if (runLevel >= 5) {   // Git versioning
      }
      listenerRelay.on("piThing.commitChanged", function() {
           writeSettings(true);
-     })
+     });
      commands.checkGitVersion = checkGitVersion;
 }
 
