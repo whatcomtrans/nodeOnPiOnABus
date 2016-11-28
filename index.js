@@ -137,7 +137,7 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
      debugConsole.log("Initial settings: " + JSON.stringify(piThing), debugConsole.INFO);
      listenerRelay.addEmitter("LOGGER", debugConsole);
      listenerRelay.on("piThing.registered", function() {
-          debugConsole.mqttTopic = "/vehicles/" + piThing.getProperty("thingName" + "/console";
+          debugConsole.mqttTopic = "/vehicles/" + piThing.getProperty("thingName") + "/console";
           debugConsole.mqttAgent = piThing;
 
           // write out settings file when these are changed
