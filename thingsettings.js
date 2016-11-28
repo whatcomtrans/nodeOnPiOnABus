@@ -28,7 +28,7 @@ module.exports = class thingSettings extends EventEmitter {
 
           if (_this._fileName != null) {
                if (fs.existsSync(_this._fileName)) {
-                    _this._settings.apply(require(_this._fileName));
+                    _this._local.apply(require(_this._fileName));
                }
           }
      }
