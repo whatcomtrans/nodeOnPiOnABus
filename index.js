@@ -132,12 +132,12 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
      // Apply settings to debugConsole
      debugConsole.apply(piThing);
      if ("debugTopic" in piThing) {
-          debugConsole.mqttTopic = piThing.debugTopic;
+          debugConsole.mqttTopic = piThing.getProperty("debugTopic");
      }
      debugConsole.log("Initial settings: " + JSON.stringify(piThing), debugConsole.INFO);
      listenerRelay.addEmitter("LOGGER", debugConsole);
      listenerRelay.on("piThing.registered", function() {
-          debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
+          debugConsole.mqttTopic = "/vehicles/" + piThing.getProperty("thingName" + "/console";
           debugConsole.mqttAgent = piThing;
 
           // write out settings file when these are changed
@@ -230,7 +230,7 @@ if (runLevel >= 10) {   // GPS lisener
      gpsDevice.logger = debugConsole;
      commands.gpsDevice = gpsDevice;
      listenerRelay.addEmitter("GPS", gpsDevice);
-     gpsDevice.listen({source: "udp", "udpPort": piThing.GPSudpPort});
+     gpsDevice.listen({source: "udp", "udpPort": piThing.getProperty("GPSudpPort"});
      listenerRelay.on("PROCESS.shutdown", function() {
           debugConsole.log("Exiting... Stopping gpsDevice", debugConsole.INFO);
           gpsDevice.stop();
@@ -254,9 +254,9 @@ if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
           var msgString = data.raw;
           var id = msgString.substr((msgString.indexOf(";ID=")+5),3);
           // is vehicleID different then current settings
-          if (id != piThing.vehicleId) {
-               debugConsole.log("Updating vehicleId from " + piThing.vehicleId + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
-               piThing.vehicleId = id;
+          if (id != piThing.getProperty("vehicleId") {
+               debugConsole.log("Updating vehicleId from " + piThing.getProperty("vehicleId" + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
+               piThing.setProperty("vehicleId", id);
                writeSettings(true);
           }
      });
@@ -276,7 +276,7 @@ if (runLevel >= 20) {  // AWS IoT Client
           require('getmac').getMac(function (err, mac) {
                if (err)  throw err
                awsConfig.clientId = "nodeOnPiOnABus-client-" + mac;
-               piThing.macAddress = mac;
+               piThing.setProperty("macAddress", mac);
                debugConsole.log("Creating awsClient with clientId of " + awsConfig.clientId, debugConsole.INFO);
                awsClient = awsIoTThing.clientFactory(awsConfig);
                listenerRelay.addEmitter("AWSClient", awsClient);
@@ -299,7 +299,7 @@ if (runLevel >= 21) {  // MQTT remote command processing support
           f.call(commands, commands);
      }
      listenerRelay.once("AWSClient.firstConnect", function() {
-          awsClient.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
+          awsClient.subscribe("/vehicles/" + piThing.getProperty("thingName") + "/commands", {"qos": 0}, function(err, granted) {
                if (err) {
                     debugConsole.log("Error subscribing: " + err);
                } else {
@@ -347,7 +347,7 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
      listenerRelay.once("AWSClient.firstConnect", function(err, client) {
           // Create piThing
           debugConsole.log("About to create piThing");
-          awsClient.thingFactory("pi" + piThing.vehicleId, {"persistentSubscribe": true}, false, function(err, thing) {
+          awsClient.thingFactory("pi" + piThing.getProperty("vehicleId"), {"persistentSubscribe": true}, false, function(err, thing) {
                piThing = piThing.copyTo(thing);
                listenerRelay.addEmitter("piThing", thing);
                commands.piThing = piThing;
@@ -376,7 +376,7 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
 if (runLevel >= 41) {  // Rudementary GPS to DVR over TCP setup
      var tcpDVR = null;
      var newDVRs = ["831", "832", "833", "834", "835", "836", "837"];
-     if (newDVRs.indexOf(piThing.vehicleId) > -1 ) {
+     if (newDVRs.indexOf(piThing.getProperty("vehicleId") > -1 ) {
           listenerRelay.on("PROCESS.shutdown", function() {
                if (tcpDVR != null) {
                     debugConsole.log("Exiting... Stopping tcpDVR stream", debugConsole.INFO);
