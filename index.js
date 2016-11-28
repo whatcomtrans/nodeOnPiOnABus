@@ -255,7 +255,7 @@ if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
           var id = msgString.substr((msgString.indexOf(";ID=")+5),3);
           // is vehicleID different then current settings
           if (id != piThing.getProperty("vehicleId")) {
-               debugConsole.log("Updating vehicleId from " + piThing.getProperty("vehicleId" + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
+               debugConsole.log("Updating vehicleId from " + piThing.getProperty("vehicleId") + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
                piThing.setProperty("vehicleId", id);
                writeSettings(true);
           }
@@ -376,7 +376,7 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
 if (runLevel >= 41) {  // Rudementary GPS to DVR over TCP setup
      var tcpDVR = null;
      var newDVRs = ["831", "832", "833", "834", "835", "836", "837"];
-     if (newDVRs.indexOf(piThing.getProperty("vehicleId") > -1 ) {
+     if (newDVRs.indexOf(piThing.getProperty("vehicleId")) > -1 ) {
           listenerRelay.on("PROCESS.shutdown", function() {
                if (tcpDVR != null) {
                     debugConsole.log("Exiting... Stopping tcpDVR stream", debugConsole.INFO);
