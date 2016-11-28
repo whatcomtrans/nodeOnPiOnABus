@@ -254,7 +254,7 @@ if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
           var msgString = data.raw;
           var id = msgString.substr((msgString.indexOf(";ID=")+5),3);
           // is vehicleID different then current settings
-          if (id != piThing.getProperty("vehicleId") {
+          if (id != piThing.getProperty("vehicleId")) {
                debugConsole.log("Updating vehicleId from " + piThing.getProperty("vehicleId" + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
                piThing.setProperty("vehicleId", id);
                writeSettings(true);
