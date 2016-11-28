@@ -212,7 +212,8 @@ if (runLevel >= 5) {   // Git versioning
                                              if (error) {
                                                   console.error(`exec error: ${error}`);
                                              } else {
-                                                  piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false, function() {writeSettings(true);});
+                                                  piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""), false);
+                                                  // Once value is changed, we listen for the commitChanged event, see below
                                              }
                                         });
                                    });
@@ -222,6 +223,9 @@ if (runLevel >= 5) {   // Git versioning
                });
           }
      }
+     listenerRelay.on("piThing.commitChanged", function() {
+          writeSettings(true);
+     })
      commands.checkGitVersion = checkGitVersion;
 }
 
