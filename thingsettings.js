@@ -76,7 +76,7 @@ module.exports = class thingSettings extends EventEmitter {
 
           //Only update value if it is different
           ////debugConsole("Here with " + propertyName + " of value " + JSON.stringify(propertyValue) + " and old propertyValue of " + JSON.stringify(oldValue));
-          if (equal(oldValue, propertyValue, {"strict": true})) {     //samve value
+          if (Object.is(oldValue, propertyValue)) {     //same value
                //debugConsole("No value change");
           } else {       //New value
                //debugConsole("New property value, current _local is " + JSON.stringify(_this._local));
