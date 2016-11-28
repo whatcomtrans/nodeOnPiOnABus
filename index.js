@@ -20,7 +20,7 @@ const exec = require('child_process').exec;
 const jsonfile = require('jsonfile');  // May no longer be needed
 const net = require('net');
 const dgram = require("dgram");
-const thingSettings = require("./thingpiThing.js");
+const thingSettings = require("./thingsettings.js");
 var debugConsole = require("./debugconsole").consoleFactory();
 var gpsDevice = require("./gpsdevice").gpsFactory();
 
