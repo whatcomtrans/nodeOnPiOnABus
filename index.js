@@ -197,7 +197,7 @@ if (runLevel >= 5) {   // Git versioning
                          if (piThing.getDeltaProperty("commit") != null) {
                               //change commit
                               var newCommit = piThing.getDeltaProperty("commit")
-                              debugConsole ("Need to update the commit to: " + newCommit, debugConsole.INFO);
+                              debugConsole.log("Need to update the commit to: " + newCommit, debugConsole.INFO);
                               // Call 'git fetch --all'
                               exec('git fetch --all', (error, stdout, stderr) => {
                                    debugConsole.log("git error: " + error);
@@ -298,8 +298,8 @@ if (runLevel >= 21) {  // MQTT remote command processing support
           global.f = new Function("commands", code);
           f.call(commands, commands);
      }
-     listenerRelay.once("AWSClient.firstConnect", function() {
-          awsClient.subscribe("/vehicles/" + piThing.getProperty("thingName") + "/commands", {"qos": 0}, function(err, granted) {
+     listenerRelay.once("piThing.registered", function() {
+          awsClient.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
                if (err) {
                     debugConsole.log("Error subscribing: " + err);
                } else {
@@ -314,7 +314,8 @@ if (runLevel >= 21) {  // MQTT remote command processing support
                     });
                }
           });
-
+     });
+     listenerRelay.once("AWSClient.firstConnect", function() {
           awsClient.subscribe("/vehicles/pi/commands", {"qos": 0}, function(err, granted) {
                if (err) {
                     debugConsole.log("Error subscribing: " + err);
