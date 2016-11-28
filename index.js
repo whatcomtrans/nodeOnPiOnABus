@@ -343,7 +343,6 @@ if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
 
 if (runLevel >= 30) {  // AWS IoT thing representing this Pi
      // Add the piThing
-     var piThing = null;
      listenerRelay.once("AWSClient.firstConnect", function(err, client) {
           // Create piThing
           debugConsole.log("About to create piThing");
