@@ -110,7 +110,9 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
           });
      });
      listenerRelay.on("piThing.registered", function() {
-          debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
+          if (debugConsole.mqttTopic == null) {
+               debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
+          }
           debugConsole.mqttAgent = piThing;
      });
      listenerRelay.on("piThing.delta", function(state) {
