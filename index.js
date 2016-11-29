@@ -91,7 +91,7 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
 if (runLevel >= 3) {   // Settings management
      delete argv.debugOutput;  // prevent poluting settings
      delete argv.debugLevel;  // prevent poluting settings
-     var piThing = new thingSettings("../settings/settings.json", argv);
+     var piThing = new thingSettings("../settings/pisettings.json", argv);
      piThing.reportProperty("runLevel", runLevel);
      piThing.reportProperty("doCheckGitVersion", doCheckGitVersion);
      debugConsole.log("Settings loaded.  Configuring with runLevel " + runLevel + ".");
