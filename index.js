@@ -79,11 +79,13 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
      doCheckGitVersion = argv.doCheckGitVersion;
 
      // Setup debugConsole
-     debugConsole.debugOutput = argv.debugOutput  // debugConsole.CONSOLEONLY;
-     debugConsole.debugLevel = argv.debugLevel  // debugConsole.DEBUG;
+     debugConsole.debugOutput = argv.debugOutput;  // debugConsole.CONSOLEONLY;
+     debugConsole.debugLevel = argv.debugLevel;  // debugConsole.DEBUG;
 }
 
 if (runLevel >= 3) {   // Settings management
+     delete argv.debugOutput;  // prevent poluting settings
+     delete argv.debugLevel;  // prevent poluting settings
      var piThing = new thingSettings("../settings/settings.json", argv);
      debugConsole.log("Settings loaded.  Configuring with runLevel " + runLevel + ".");
 }
