@@ -197,16 +197,15 @@ if (runLevel >= 10) {   // GPS lisener
                Object.assign(gpsSettings, piThing.getDeltaProperty("sourceGPS"));
                debugConsole.log("Changing sourceGPS settings to: " + JSON.stringify(gpsSettings), debugConsole.INFO);
                piThing.reportProperty("sourceGPS", gpsSettings);
-               listenerRelay.once("piThing.registered", function() {piThing.reportState();});
-               gpsDevice.stop(function() {
-                    debugConsole.log("gpsDevice stopped, now going to start again with settings: " + JSON.stringify(gpsSettings));
-                    gpsDevice.listen(gpsSettings);
-               });
           }
      });
      listenerRelay.on("piThing.sourceGPSChanged", function() {
           debugConsole.log("piThing.sourceGPSChanged, writing settings...")
           piThing.writeSettings();
+          gpsDevice.stop(function() {
+               debugConsole.log("gpsDevice stopped, now going to start again with settings: " + JSON.stringify(gpsSettings));
+               gpsDevice.listen(piThing.getSettings("sourceGPS"));
+          });
      });
      listenerRelay.on("PROCESS.shutdown", function() {
           debugConsole.log("Exiting... Stopping gpsDevice", debugConsole.INFO);
