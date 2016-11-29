@@ -190,6 +190,18 @@ if (runLevel >= 10) {   // GPS lisener
      listenerRelay.addEmitter("GPS", gpsDevice);
      gpsDevice.listen(piThing.getProperty("sourceGPS"));
      //gpsDevice.listen({source: "udp", "udpPort": piThing.getProperty("GPSudpPort")});
+     listenerRelay.on("piThing.delta", function(state) {
+          if (piThing.getDeltaProperty("sourceGPS") != null) {
+               var settings = piThing.getDeltaProperty("sourceGPS");
+               debugConsole.log("Changing sourceGPS settings to: " + settings, debugConsole.INFO);
+               gpsDevice.stop(function() {
+                    gpsDevice.listen(settings);
+               });
+               piThing.reportProperty("sourceGPS", settings, true, function() {
+                    piThing.writeSettings();
+               });
+          }
+     });
      listenerRelay.on("PROCESS.shutdown", function() {
           debugConsole.log("Exiting... Stopping gpsDevice", debugConsole.INFO);
           gpsDevice.stop();
