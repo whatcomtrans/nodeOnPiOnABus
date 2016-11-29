@@ -86,46 +86,6 @@ if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLe
 if (runLevel >= 3) {   // Settings management
      var piThing = new thingSettings("../settings/settings.json", argv);
      debugConsole.log("Settings loaded.  Configuring with runLevel " + runLevel + ".");
-
-//if (runLevel >= 3) {   // Settings management
-     function writeSettings (restart) {
-          if (restart === undefined || restart == false) {
-               piThing.writeSettings();
-          } else {
-               piThing.writeSettings(function() {
-                    process.shutdown();
-               });
-          }
-/*         var outSettings = settings;
-          debugConsole.log("About to write settings...");
-          if (restart === undefined) {
-               restart = false;
-          }
-          if (ignorePiThing === undefined || ignorePiThing == false) {
-               if (piThing != null) {
-                    if (stateUpdated === undefined || stateUpdated == false) {
-                         piThing.retrieveState(function () {
-                              writeSettings(restart, true);
-                         });
-                    } else {
-                         outSettings = piThing.getReported();
-                    }
-               }
-          }
-          jsonfile.writeFile("../settings/settings.json", outSettings, function (err) {
-               if (err) {
-                    console.error(err);
-               } else {
-                    // TODO should add an emit here but not sure what emitter to use
-                    if (restart) {
-                         //exit and Restart
-                         setTimeout(function() {process.shutdown();}, 100);
-                    }
-               }
-          });
-     */
-     }
-     commands.writeSettings = writeSettings;
 }
 
 if (runLevel >= 4) {  // Advanced debugConsole setup
@@ -143,17 +103,17 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
           // write out settings file when these are changed
           debugConsole.on("changed.debugOutput", function(value) {
                piThing.reportProperty("debugOutput", value, false, function() {
-                    writeSettings();
+                    piThing.writeSettings();
                });
           });
           debugConsole.on("changed.debugLevel", function(value) {
                piThing.reportProperty("debugLevel", value, false, function() {
-                    writeSettings();
+                    piThing.writeSettings();
                });
           });
           debugConsole.on("changed.mqttTopic", function(value) {
                piThing.reportProperty("debugTopic", value, false, function() {
-                    writeSettings();
+                    piThing.writeSettings();
                });
           });
 
@@ -261,7 +221,7 @@ if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
           if (id != piThing.getProperty("vehicleId")) {
                debugConsole.log("Updating vehicleId from " + piThing.getProperty("vehicleId") + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
                piThing.setProperty("vehicleId", id);
-               writeSettings(true);
+               piThing.writeSettings(function() {process.shutdown();});
           }
      });
 }

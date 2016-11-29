@@ -184,7 +184,13 @@ module.exports = class thingSettings extends EventEmitter {
           var _this = this;
 
           Object.getOwnPropertyNames(_this._local).forEach(function(propertyName, idx, array) {
-               obj.reportProperty(propertyName, _this._local[propertyName], true);
+               if (propertyName == "$0") {
+                    // DO NOT COPY
+               } else if (propertyName == "_") {
+                    // DO NOT COPY
+               } else {
+                    obj.reportProperty(propertyName, _this._local[propertyName], true);
+               }
           });
           if (onlyProps === undefined) {
                onlyProps = false;
