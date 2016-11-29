@@ -109,6 +109,7 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
                var settings = piThing.getDeltaProperty("debugConsole");
                debugConsole.log("Changing debugConsole settings to: " + settings, debugConsole.INFO);
                Object.assign(debugConsole, settings);
+          }
      });
      commands.debugConsole = debugConsole;
 }
