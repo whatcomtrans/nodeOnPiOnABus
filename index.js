@@ -196,7 +196,7 @@ if (runLevel >= 10) {   // GPS lisener
           if (piThing.getDeltaProperty("sourceGPS") != null) {
                Object.assign(gpsSettings, piThing.getDeltaProperty("sourceGPS"));
                debugConsole.log("Changing sourceGPS settings to: " + JSON.stringify(gpsSettings), debugConsole.INFO);
-               piThing.reportProperty("sourceGPS", gpsSettings);
+               piThing.sourceGPS = gpsSettings;
           }
      });
      listenerRelay.on("piThing.sourceGPSChanged", function() {
