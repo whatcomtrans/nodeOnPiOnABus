@@ -13,7 +13,7 @@ const EventEmitter = require('events');
  * @class
  */
 class debugConsole extends EventEmitter {
-     constructor(output, level) {
+     constructor(settings) {
           super();
           var _this = this;
 
@@ -31,32 +31,34 @@ class debugConsole extends EventEmitter {
           _this.NONE = "NONE";
 
           // Defaults
-          if (output === undefined) {
-               _this._debugOutput = _this.CONSOLEONLY;
-          } else {
-               _this._debugOutput = output;
+          if (settings === undefined) {
+               _this._settings = new Object();
           }
 
-          if (level === undefined) {
-               _this._defaultLogLevel = _this.DEBUG;
-          } else {
-               _this._defaultLogLevel = level;
+          if (_this._settings.debugOutput === undefined) {
+               _this._settings.debugOutput = _this.CONSOLEONLY;
           }
 
-          _this._mqttTopic = null;
+          if (_this._settings.defaultLogLevel === undefined) {
+               _this._settings.defaultLogLevel = _this.DEBUG;
+          }
+
+          if (_this._settings.mqttTopic === undefined) {
+               _this._settings.mqttTopic = null;
+          }
           _this._mqttAgent = null;
      }
 
      log (message, level, debugOutput) {
           var _this = this;
           if (level  === undefined) {
-               level = _this._defaultLogLevel;
+               level = _this._settings.defaultLogLevel;
           }
           if (debugOutput === undefined) {
-               debugOutput = _this._debugOutput;
+               debugOutput = _this._settings.debugOutput;
           }
           var levelName = "DEBUG";
-          if (level <= _this._debugLevel) {
+          if (level <= _this._settings.debugLevel) {
                switch (level) {
                     case 1:
                          levelName = "IMPORTANT";
@@ -90,8 +92,9 @@ class debugConsole extends EventEmitter {
           }
      }
 
-     apply(config) {
-          // TODO
+     get settings() {
+          var _this = this;
+          return _this._settings;
      }
 
      stop() {
@@ -100,10 +103,10 @@ class debugConsole extends EventEmitter {
 
      logMqtt(msg) {
           var _this = this;
-          if (_this._mqttTopic == null || _this._mqttAgent == null) {
+          if (_this._settings.mqttTopic == null || _this._mqttAgent == null) {
                _this.emit("logged.mqtt.failed", msg, "Either topic or agent are null.")
           } else {
-               _this._mqttAgent.publish(_this._mqttTopic, msg, function(err) {
+               _this._mqttAgent.publish(_this._settings.mqttTopic, msg, function(err) {
                     if (err == null) {
                          _this.emit("logged.mqtt.success", msg);
                     } else {
@@ -115,14 +118,14 @@ class debugConsole extends EventEmitter {
 
      set debugOutput (output) {
           var _this = this;
-          _this._debugOutput = output.toUpperCase();
-          _this.emit("changed.debugOutput", _this._debugOutput);
-          _this.emit("changed", "debugOutput", _this._debugOutput);
+          _this._settings.debugOutput = output.toUpperCase();
+          _this.emit("changed.debugOutput", _this._settings.debugOutput);
+          _this.emit("changed", "debugOutput", _this._settings);
      }
 
      get debugOutput () {
           var _this = this;
-          return _this._debugOutput;
+          return _this._settings.debugOutput;
      }
 
      set debugLevel (level) {
@@ -145,21 +148,21 @@ class debugConsole extends EventEmitter {
           } else {
                level = parseInt(level, 10);
           }
-          _this._debugLevel = level;
-          _this.emit("changed.debugLevel", _this._debugLevel);
-          _this.emit("changed", "debugLevel", _this._debugLevel);
+          _this._settings.debugLevel = level;
+          _this.emit("changed.debugLevel", _this._settings.debugLevel);
+          _this.emit("changed", "debugLevel", _this._settings);
      }
 
      get debugLevel () {
           var _this = this;
-          return _this._debugLevel;
+          return _this._settings.debugLevel;
      }
 
      set mqttAgent (agent) {
           var _this = this;
           _this._mqttAgent = agent;
           _this.emit("changed.mqttAgent", _this._mqttAgent);
-          _this.emit("changed", "mqttAgent", _this._mqttAgent);
+          // _this.emit("changed", "mqttAgent", _this._settings);
      }
 
      get mqttAgent () {
@@ -169,17 +172,17 @@ class debugConsole extends EventEmitter {
 
      set mqttTopic (topic) {
           var _this = this;
-          _this._mqttTopic = topic;
-          _this.emit("changed.mqttTopic", _this._mqttTopic);
-          _this.emit("changed", "mqttTopic", _this._mqttTopic);
+          _this._settings.mqttTopic = topic;
+          _this.emit("changed.mqttTopic", _this._settings.mqttTopic);
+          _this.emit("changed", "mqttTopic", _this._settings);
      }
 
      get mqttTopic () {
           var _this = this;
-          return _this._mqttTopic;
+          return _this._settings.mqttTopic;
      }
 }
 
-module.exports.consoleFactory = function(output, level) {
-     return new debugConsole(output, level);
+module.exports.consoleFactory = function(settings) {
+     return new debugConsole(settings);
 }

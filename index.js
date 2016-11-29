@@ -90,43 +90,25 @@ if (runLevel >= 3) {   // Settings management
 
 if (runLevel >= 4) {  // Advanced debugConsole setup
      // Apply settings to debugConsole
-     debugConsole.apply(piThing);
-     if ("debugTopic" in piThing) {
-          debugConsole.mqttTopic = piThing.getProperty("debugTopic");
-     }
+     Object.assign(debugConsole, piThing.getProperty("debugConsole"));
      debugConsole.log("Initial settings: " + JSON.stringify(piThing), debugConsole.INFO);
      listenerRelay.addEmitter("LOGGER", debugConsole);
+     // write out settings file when they are changed
+     listenerRelay.on("LOGGER.changed", function(name, settings) {
+          debugConsole.log("debugConsole detected settings change to setting: " + name + ".  New settings are: " + JSON.stringify(settings) + ", saving...");
+          piThing.reportProperty("debugConsole", settings, false, function() {
+               piThing.writeSettings();
+          });
+     });
      listenerRelay.on("piThing.registered", function() {
           debugConsole.mqttTopic = "/vehicles/" + piThing.getProperty("thingName") + "/console";
           debugConsole.mqttAgent = piThing;
-
-          // write out settings file when these are changed
-          debugConsole.on("changed.debugOutput", function(value) {
-               piThing.reportProperty("debugOutput", value, false, function() {
-                    piThing.writeSettings();
-               });
-          });
-          debugConsole.on("changed.debugLevel", function(value) {
-               piThing.reportProperty("debugLevel", value, false, function() {
-                    piThing.writeSettings();
-               });
-          });
-          debugConsole.on("changed.mqttTopic", function(value) {
-               piThing.reportProperty("debugTopic", value, false, function() {
-                    piThing.writeSettings();
-               });
-          });
-
      });
      listenerRelay.on("piThing.delta", function(state) {
-          if (piThing.getDeltaProperty("debugOutput") != null) {
-               debugConsole.log("Changing debugOutput to: " + piThing.getDeltaProperty("debugOutput"), debugConsole.INFO);
-               debugConsole.debugOutput = piThing.getDeltaProperty("debugOutput");
-          }
-          if (piThing.getDeltaProperty("debugLevel") != null) {
-               debugConsole.log("Changing debugLevel to: " + piThing.getDeltaProperty("debugLevel"), debugConsole.INFO);
-               debugConsole.debugOutput = piThing.getDeltaProperty("debugLevel");
-          }
+          if (piThing.getDeltaProperty("debugConsole") != null) {
+               var settings = piThing.getDeltaProperty("debugConsole");
+               debugConsole.log("Changing debugConsole settings to: " + settings, debugConsole.INFO);
+               Object.assign(debugConsole, settings);
      });
      commands.debugConsole = debugConsole;
 }
