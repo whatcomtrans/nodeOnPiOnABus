@@ -193,7 +193,7 @@ if (runLevel >= 10) {   // GPS lisener
      listenerRelay.on("piThing.delta", function(state) {
           if (piThing.getDeltaProperty("sourceGPS") != null) {
                var settings = piThing.getDeltaProperty("sourceGPS");
-               debugConsole.log("Changing sourceGPS settings to: " + settings, debugConsole.INFO);
+               debugConsole.log("Changing sourceGPS settings to: " + JSON.stringify(settings), debugConsole.INFO);
                gpsDevice.stop(function() {
                     gpsDevice.listen(settings);
                });
