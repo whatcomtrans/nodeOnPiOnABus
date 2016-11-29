@@ -74,8 +74,13 @@ commands.startup = process.startup;
 
 if (runLevel >= 1) {  // Accept command line options to set runLevel and debugLevel
      // set runLevel
+     // Note, this is the only way to set a non-default runLevel.
+     // Even though it is reported in the settings, it can not be changed via IoT
      runLevel = argv.runLevel;
 
+     // Note, this is the only way to set a non-default doCheckGitVersion.
+     // Even though it is reported in the settings, it can not be changed via IoT
+     // TODO consider removing this altogether
      doCheckGitVersion = argv.doCheckGitVersion;
 
      // Setup debugConsole
@@ -87,6 +92,8 @@ if (runLevel >= 3) {   // Settings management
      delete argv.debugOutput;  // prevent poluting settings
      delete argv.debugLevel;  // prevent poluting settings
      var piThing = new thingSettings("../settings/settings.json", argv);
+     piThing.reportProperty("runLevel", runLevel);
+     piThing.reportProperty("doCheckGitVersion", doCheckGitVersion);
      debugConsole.log("Settings loaded.  Configuring with runLevel " + runLevel + ".");
 }
 
