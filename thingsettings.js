@@ -98,6 +98,7 @@ module.exports = class thingSettings extends EventEmitter {
 
      deleteProperty(propertyName, delayUpdate, callback) {
           var _this = this;
+          callback = (typeof callback === 'function') ? callback : function() {};
           var oldValue = _this[propertyName]
           delete _this[propertyName];
           delete _this._local[propertyName];
@@ -122,10 +123,12 @@ module.exports = class thingSettings extends EventEmitter {
      }
 
      reportState(callback) {
+          callback = (typeof callback === 'function') ? callback : function() {};
           callback();
      }
 
      retrieveState(callback) {
+          callback = (typeof callback === 'function') ? callback : function() {};
           callback();
      }
 
@@ -168,12 +171,14 @@ module.exports = class thingSettings extends EventEmitter {
      }
 
      end(force, callback) {
+          callback = (typeof callback === 'function') ? callback : function() {};
           callback();
      }
 
      writeSettings(callback) {
           // save the _local to _fileName
           var _this = this;
+          callback = (typeof callback === 'function') ? callback : function() {};
           jsonfile.writeFile(_this._fileName, _this._local, function (err) {
                callback(err);
           });
@@ -200,6 +205,7 @@ module.exports = class thingSettings extends EventEmitter {
                obj.writeSettings = function(callback) {
                     // save the _local to _fileName
                     var _this = this;
+                    callback = (typeof callback === 'function') ? callback : function() {};
                     jsonfile.writeFile(_this._fileName, _this._local, function (err) {
                          callback(err);
                     });
