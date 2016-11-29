@@ -196,9 +196,12 @@ if (runLevel >= 10) {   // GPS lisener
                Object.assign(gpsSettings, piThing.getDeltaProperty("sourceGPS"));
                debugConsole.log("Changing sourceGPS settings to: " + JSON.stringify(gpsSettings), debugConsole.INFO);
                piThing.reportProperty("sourceGPS", gpsSettings, true, function() {
-                    piThing.writeSettings();
+                    piThing.writeSettings(function() {
+                         debugConsole.log("Settings saved...");
+                    });
                });
                gpsDevice.stop(function() {
+                    debugConsole.log("gpsDevice stopped, now going to start again with settings: " + JSON.stringify(gpsSettings));
                     gpsDevice.listen(gpsSettings);
                });
           }
