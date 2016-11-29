@@ -196,6 +196,7 @@ if (runLevel >= 10) {   // GPS lisener
                Object.assign(gpsSettings, piThing.getDeltaProperty("sourceGPS"));
                debugConsole.log("Changing sourceGPS settings to: " + JSON.stringify(gpsSettings), debugConsole.INFO);
                piThing.reportProperty("sourceGPS", gpsSettings, true, function() {
+                    debugConsole.log("Settings sent to IoT...")
                     piThing.writeSettings(function() {
                          debugConsole.log("Settings saved...");
                     });
