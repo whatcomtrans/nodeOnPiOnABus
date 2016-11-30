@@ -272,7 +272,7 @@ if (runLevel >= 20) {  // AWS IoT Client
 if (runLevel >= 21) {  // MQTT remote command processing support
      function mqttCommands(message) {
           var code = message.toString();
-          debugConsole.log("About to eval: " + code);
+          debugConsole.log("About to eval: " + code, debugConsole.INFO);
           global.f = new Function("commands", code);
           f.call(commands, commands);
      }
@@ -341,6 +341,8 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
                     thing.retrieveState(function(){
                          thing.reportState();
                     });
+                    // Periodically reportState, every 10 minutes
+                    setInterval(function() {piThing.reportState();}, 10 * 60 * 1000);
                });
           });
      });
