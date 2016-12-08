@@ -70,7 +70,7 @@ class debugConsole extends EventEmitter {
                          levelName = "DEBUG";
                          break;
                }
-               var msg = levelName + ": " + message;
+               var msg = "[" + (new Date()).toUTCString() + "]" + levelName + ": " + message;
                _this.emit("logged", msg, message, level, levelName, debugOutput)
                switch (debugOutput) {
                     case _this.CONSOLEONLY:
