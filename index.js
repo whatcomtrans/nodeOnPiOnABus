@@ -189,26 +189,27 @@ if (runLevel >= 10) {   // GPS lisener
      gpsDevice.logger = debugConsole;
      commands.gpsDevice = gpsDevice;
      listenerRelay.addEmitter("GPS", gpsDevice);
-     var gpsSettings = piThing.getProperty("sourceGPS");
-     gpsDevice.listen(gpsSettings);
-     //gpsDevice.listen({source: "udp", "udpPort": piThing.getProperty("GPSudpPort")});
+
+     if (piThing.getProperty("sourceGPS") != null) {
+          // Have settings now, go ahead and setup the gpsDevice
+          gpsDevice.listen(piThing.getProperty("sourceGPS"));
+     }
+
+     // Setup listner to capture settings changes and restart the gpsDevice
      listenerRelay.on("piThing.delta", function(state) {
           if (piThing.getDeltaProperty("sourceGPS") != null) {
-               Object.assign(gpsSettings, piThing.getDeltaProperty("sourceGPS"));
+               var gpsSettings = piThing.getDeltaProperty("sourceGPS");
                debugConsole.log("Changing sourceGPS settings to: " + JSON.stringify(gpsSettings), debugConsole.INFO);
                piThing.reportProperty("sourceGPS", gpsSettings, false, function() {
                     debugConsole.log("Updating sourceGPS settings...");
+                    gpsDevice.stop(function() {
+                         debugConsole.log("Stopping gpsDevice");
+                         gpsDevice.listen(gpsSettings);
+                    });
                });
           }
      });
-     listenerRelay.on("piThing.sourceGPSChanged", function() {
-          debugConsole.log("piThing.sourceGPSChanged, writing settings...")
-          piThing.writeSettings();
-          gpsDevice.stop(function() {
-               debugConsole.log("gpsDevice stopped, now going to start again with settings: " + JSON.stringify(gpsSettings));
-               gpsDevice.listen(piThing.getSettings("sourceGPS"));
-          });
-     });
+
      listenerRelay.on("PROCESS.shutdown", function() {
           debugConsole.log("Exiting... Stopping gpsDevice", debugConsole.INFO);
           gpsDevice.stop();
