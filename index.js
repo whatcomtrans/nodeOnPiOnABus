@@ -203,11 +203,11 @@ if (runLevel >= 10) {   // GPS lisener
                piThing.reportProperty("sourceGPS", gpsSettings, false, function() {
                     debugConsole.log("Updating sourceGPS settings...");
                     //piThing.writeSettings();
-                    debugConsole.log("Stopping gpsDevice");
-                    gpsDevice.stop(function() {
-                         gpsDevice.listen(piThing.getProperty("sourceGPS"));
-                         debugConsole.log("sourceGPS updated");
-                    });
+                    //debugConsole.log("Stopping gpsDevice");
+                    //gpsDevice.stop(function() {
+                    //     gpsDevice.listen(piThing.getProperty("sourceGPS"));
+                    //     debugConsole.log("sourceGPS updated");
+                    //});
                });
           }
      });
@@ -340,7 +340,7 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
                // Handle connection status changes
                thing.register(function() {
                     thing.emit("registered");
-                    debugConsole.log("thing registered");
+                    debugConsole.log("piThing thing registered");
                     thing.retrieveState(function(){
                          thing.reportState();
                     });
