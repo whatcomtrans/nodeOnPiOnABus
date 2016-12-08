@@ -193,6 +193,7 @@ if (runLevel >= 10) {   // GPS lisener
      if (piThing.getProperty("sourceGPS") != null) {
           // Have settings now, go ahead and setup the gpsDevice
           gpsDevice.listen(piThing.getProperty("sourceGPS"));
+          debugConsole("sourceGPS to listen: " + JSON.stringify(piThing.getProperty("sourceGPS")));
      }
 
      // Setup listner to capture settings changes and restart the gpsDevice
@@ -205,7 +206,8 @@ if (runLevel >= 10) {   // GPS lisener
                     //piThing.writeSettings();
                     //debugConsole.log("Stopping gpsDevice");
                     //gpsDevice.stop(function() {
-                    //     gpsDevice.listen(piThing.getProperty("sourceGPS"));
+                    gpsDevice.listen(piThing.getProperty("sourceGPS"));
+                    debugConsole("sourceGPS to listen: " + JSON.stringify(piThing.getProperty("sourceGPS")));
                     //     debugConsole.log("sourceGPS updated");
                     //});
                //});
