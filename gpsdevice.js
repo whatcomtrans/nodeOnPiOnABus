@@ -68,11 +68,15 @@ class gpsDevice extends EventEmitter {
 	stop(callback) {
 		var _this = this;
 		callback = (typeof callback === 'function') ? callback : function(error) {};
-		switch (_this._source) {
-			case "udp":
-				_this._server.unref();
-				_this._server.close(callback);
-				break;
+		if (_this._source === undefined) {
+			callback;
+		} else {
+			switch (_this._source) {
+				case "udp":
+					_this._server.unref();
+					_this._server.close(callback);
+					break;
+			}
 		}
 	}
 
