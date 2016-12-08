@@ -424,13 +424,13 @@ if (runLevel >= 50) {  // Farebox
 
 if (runLevel >= 51) {  // Forward GPS to Farebox
      listenerRelay.every("GPS.GLL", function(data) {
-          if (fareboxThing.udpPort != null && fareboxThing.ipAddress != null) {
+          if ((fareboxThing.udpPort != null) && (fareboxThing.ipAddress != null)) {
                var udpClient = dgram.createSocket("udp4");
                var message = new Buffer(data.raw);
                udpClient.send(message, 0, message.length, fareboxThing.udpPort, fareboxThing.ipAddress,  function() {
                     debugConsole.log("Sent to farebox: '" + message + "'");
                     udpClient.close();
-               }
+               });
           }
      }, {method: "counter", dely: 10});
 }
