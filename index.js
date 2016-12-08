@@ -204,8 +204,8 @@ if (runLevel >= 10) {   // GPS lisener
                     debugConsole.log("Updating sourceGPS settings...");
                     //piThing.writeSettings();
                     debugConsole.log("Stopping gpsDevice");
-                    gpsDevice.stop(function() {     
-                         gpsDevice.listen(gpsSettings);
+                    gpsDevice.stop(function() {
+                         gpsDevice.listen(piThing.getProperty("sourceGPS"));
                          debugConsole.log("sourceGPS updated");
                     });
                });
