@@ -208,7 +208,7 @@ if (runLevel >= 10) {   // GPS lisener
                     //     gpsDevice.listen(piThing.getProperty("sourceGPS"));
                     //     debugConsole.log("sourceGPS updated");
                     //});
-               });
+               //});
           }
      });
 
