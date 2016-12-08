@@ -327,13 +327,13 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
           debugConsole.log("About to create piThing");
           awsClient.thingFactory("pi" + piThing.getProperty("vehicleId"), {"persistentSubscribe": true}, false, function(err, thing) {
                piThing = piThing.copyTo(thing);
-               listenerRelay.addEmitter("piThing", thing);
+               listenerRelay.addEmitter("piThing", piThing);
                commands.piThing = piThing;
                if (err) {
                     debugConsole.log("Error: " + err);
                }
                debugConsole.log(JSON.stringify(piThing));
-               debugConsole.log("thing created");
+               debugConsole.log("piThing created");
                // Handle connection status changes
                thing.register(function() {
                     thing.emit("registered");
@@ -348,7 +348,7 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
      });
      listenerRelay.on("PROCESS.shutdown", function() {
           piThing.end(false, function() {
-               debugConsole.log("Exiting... Stoped pi", debugConsole.INFO);
+               debugConsole.log("Exiting... Stopped piThing", debugConsole.INFO);
           });
      });
 }
@@ -389,17 +389,50 @@ if (runLevel >= 41) {  // Rudementary GPS to DVR over TCP setup
      }
 }
 
-if (runLevel >= 42) {  // Forward GPS to Farebox
-     var gpsRelayToFarebox = dgram.createSocket("udp4");
-     gpsRelayToFarebox.bind(function() {
-          gpsRelayToFarebox.setBroadcast(true);
-          listenerRelay.every("GPS.GLL", function(data) {
-               var message = new Buffer(data.raw);
-               gpsRelayToFarebox.send(message, 0, message.length, 5067, "192.168.1.255",  function() {
-                  debugConsole.log("Broadcast '" + message + "'");
-             }, {method: "counter", dely: 10});
+if (runLevel >= 50) {  // Farebox
+     var fareboxThing = new thingSettings("../settings/fareboxsettings.json", argv);
+     listenerRelay.once("AWSClient.firstConnect", function(err, client) {
+          // Create piThing
+          debugConsole.log("About to create fareboxThing");
+          awsClient.thingFactory("farebox" + piThing.getProperty("vehicleId"), {"persistentSubscribe": true}, false, function(err, thing) {
+               fareboxThing = fareboxThing.copyTo(thing);
+               listenerRelay.addEmitter("fareboxThing", fareboxThing);
+               commands.piThing = fareboxThing;
+               if (err) {
+                    debugConsole.log("Error: " + err);
+               }
+               debugConsole.log(JSON.stringify(fareboxThing));
+               debugConsole.log("fareboxThing created");
+               // Handle connection status changes
+               thing.register(function() {
+                    thing.emit("registered");
+                    debugConsole.log("fareboxThing registered");
+                    thing.retrieveState(function(){
+                         thing.reportState();
+                    });
+                    // Periodically reportState, every 10 minutes
+                    setInterval(function() {piThing.reportState();}, 10 * 60 * 1000);
+               });
           });
      });
+     listenerRelay.on("PROCESS.shutdown", function() {
+          fareboxThing.end(false, function() {
+               debugConsole.log("Exiting... Stopped fareboxThing", debugConsole.INFO);
+          });
+     });
+}
+
+if (runLevel >= 51) {  // Forward GPS to Farebox
+     listenerRelay.every("GPS.GLL", function(data) {
+          if (fareboxThing.udpPort != null && fareboxThing.ipAddress != null) {
+               var udpClient = dgram.createSocket("udp4");
+               var message = new Buffer(data.raw);
+               udpClient.send(message, 0, message.length, fareboxThing.udpPort, fareboxThing.ipAddress,  function() {
+                    debugConsole.log("Sent to farebox: '" + message + "'");
+                    udpClient.close();
+               }
+          }
+     }, {method: "counter", dely: 10});
 }
 
 // Ok, lets get this started
