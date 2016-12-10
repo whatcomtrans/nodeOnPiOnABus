@@ -23,6 +23,7 @@ const dgram = require("dgram");
 const thingSettings = require("./thingsettings.js");
 var debugConsole = require("./debugconsole").consoleFactory();
 var gpsDevice = require("./gpsdevice").gpsFactory();
+var alerts = require("./alerts").alerterFactory();
 
 // Gather command line arguments and setup Defaults
 // https://github.com/yargs/yargs
@@ -184,6 +185,22 @@ if (runLevel >= 5) {   // Git versioning
      commands.checkGitVersion = checkGitVersion;
 }
 
+if (runLevel >= 6) {  // Setup alerts publisher
+    alerts.mqttTopic = "/vehicles/alerts";
+    alerts.vehicleId = piThing.getProperty("vehicleId");
+    alerts.logger = debugConsole;
+    alerts.defaultSource = "pi";
+    commands.alerts = alerts;
+
+    listenerRelay.once("AWSClient.firstConnect", function() {
+          alerts.mqttAgent = awsClient;
+          // alerts.publishAlert("Ready to send alerts...");
+     });
+     listenerRelay.on("PROCESS.shutdown", function() {
+         alerts.stop();
+     });
+}
+
 if (runLevel >= 10) {   // GPS lisener
      // Setup gpsListener
      gpsDevice.logger = debugConsole;
@@ -193,7 +210,7 @@ if (runLevel >= 10) {   // GPS lisener
      if (piThing.getProperty("sourceGPS") != null) {
           // Have settings now, go ahead and setup the gpsDevice
           gpsDevice.listen(piThing.getProperty("sourceGPS"));
-          debugConsole("sourceGPS to listen: " + JSON.stringify(piThing.getProperty("sourceGPS")));
+          debugConsole.log("sourceGPS to listen: " + JSON.stringify(piThing.getProperty("sourceGPS")));
      }
 
      // Setup listner to capture settings changes and restart the gpsDevice
@@ -201,16 +218,13 @@ if (runLevel >= 10) {   // GPS lisener
           if (piThing.getDeltaProperty("sourceGPS") != null) {
                var gpsSettings = piThing.getDeltaProperty("sourceGPS");
                debugConsole.log("Changing sourceGPS settings to: " + JSON.stringify(gpsSettings), debugConsole.INFO);
-               piThing.reportProperty("sourceGPS", gpsSettings);  //, false, function() {
+               piThing.reportProperty("sourceGPS", gpsSettings, false, function() {
+                    debugConsole.log("Saving settings...");
+                    piThing.writeSettings();
                     debugConsole.log("Updating sourceGPS settings...");
-                    //piThing.writeSettings();
-                    //debugConsole.log("Stopping gpsDevice");
-                    //gpsDevice.stop(function() {
                     gpsDevice.listen(piThing.getProperty("sourceGPS"));
-                    debugConsole("sourceGPS to listen: " + JSON.stringify(piThing.getProperty("sourceGPS")));
-                    //     debugConsole.log("sourceGPS updated");
-                    //});
-               //});
+                    debugConsole.log("sourceGPS to listen: " + JSON.stringify(piThing.getProperty("sourceGPS")));
+               });
           }
      });
 
@@ -347,7 +361,7 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
                          thing.reportState();
                     });
                     // Periodically reportState, every 10 minutes
-                    setInterval(function() {piThing.reportState();}, 10 * 60 * 1000);
+                    setInterval(function() {piThing.reportState(); piThing.writeSettings()}, 10 * 60 * 1000);
                });
           });
      });
@@ -438,6 +452,19 @@ if (runLevel >= 51) {  // Forward GPS to Farebox
                });
           }
      }, {method: "counter", dely: 10});
+}
+
+if (runLevel >= 60) {  // Test connectivity to other devices via PING
+    // using https://www.npmjs.com/package/ping
+    var ping = require('ping');
+ 
+    var hosts = ['192.168.1.1', 'google.com', 'yahoo.com'];
+    hosts.forEach(function(host){
+        ping.sys.probe(host, function(isAlive){
+            var msg = isAlive ? 'host ' + host + ' is alive' : 'host ' + host + ' is dead';
+            console.log(msg);
+        });
+    });
 }
 
 // Ok, lets get this started
