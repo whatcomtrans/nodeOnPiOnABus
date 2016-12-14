@@ -22,8 +22,6 @@ const net = require('net');
 const dgram = require("dgram");
 const thingSettings = require("./thingsettings.js");
 var debugConsole = require("./debugconsole").consoleFactory();
-var gpsDevice = require("./gpsdevice").gpsFactory();
-var alerts = require("./alerts").alerterFactory();
 
 // Gather command line arguments and setup Defaults
 // https://github.com/yargs/yargs
@@ -186,10 +184,12 @@ if (runLevel >= 5) {   // Git versioning
 }
 
 if (runLevel >= 6) {  // Setup alerts publisher
-    alerts.mqttTopic = "/vehicles/alerts";
-    alerts.vehicleId = piThing.getProperty("vehicleId");
-    alerts.logger = debugConsole;
-    alerts.defaultSource = "pi";
+    var alerts = require("./alerts").alerterFactory({
+        "mqttTopic": "/vehicles/alerts",
+        "vehicleId": piThing.getProperty("vehicleId"),
+        "logger": debugConsole,
+        "defaultSource": "pi"
+    });
     commands.alerts = alerts;
 
     listenerRelay.once("AWSClient.firstConnect", function() {
@@ -201,8 +201,39 @@ if (runLevel >= 6) {  // Setup alerts publisher
      });
 }
 
+if (runLevel >= 7) {  // Track and periodically report uptime to console
+    var runTime = new Date();
+    var uptime = function() {
+        return (((new Date()) - runTime) / 1000)
+    }
+    
+    var runTimerShort = setInterval(function() {
+        debugConsole.log("Uptime of " + uptime() + " minutes.", debugConsole.INFO);
+    }, 1000 * 10);
+    var runTimerLong = setInterval(function() {
+        debugConsole.log("Uptime of " + uptime() + " minutes.", debugConsole.INFO);
+        if (runTimerShort != NULL) {
+            clearInterval(runTimerShort);
+            runTimerShort = NULL;
+        }
+    }, 1000 * 60);
+
+     listenerRelay.on("PROCESS.shutdown", function() {
+         if (runTimerShort != NULL) {
+            clearInterval(runTimerShort);
+            runTimerShort = NULL;
+        }
+        if (runTimerLong != NULL) {
+            clearInterval(runTimerLong);
+            runTimerLong = NULL;
+        }
+     });
+}
+
 if (runLevel >= 10) {   // GPS lisener
      // Setup gpsListener
+     var gpsDevice = require("./gpsdevice").gpsFactory();
+
      gpsDevice.logger = debugConsole;
      commands.gpsDevice = gpsDevice;
      listenerRelay.addEmitter("GPS", gpsDevice);
@@ -334,7 +365,7 @@ if (runLevel >= 21) {  // MQTT remote command processing support
 
 if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
      listenerRelay.on("AWSClient.firstConnect", function() {          listenerRelay.on("GPS.RLN", function (data) {
-               awsClient.publish("/vehicles/GPS.RLN.message", data.raw);
+               awsClient.publish("/vehicles/GPS.RLN.message/" + piThing.getProperty("vehicleId"), data.raw);
           });
      });
 }
@@ -455,16 +486,12 @@ if (runLevel >= 51) {  // Forward GPS to Farebox
 }
 
 if (runLevel >= 60) {  // Test connectivity to other devices via PING
-    // using https://www.npmjs.com/package/ping
-    var ping = require('ping');
- 
-    var hosts = ['192.168.1.1', 'google.com', 'yahoo.com'];
-    hosts.forEach(function(host){
-        ping.sys.probe(host, function(isAlive){
-            var msg = isAlive ? 'host ' + host + ' is alive' : 'host ' + host + ' is dead';
-            console.log(msg);
-        });
+    var netMonitor = require("./netmonitor").netmonitorFactory({
+        "logger": debugConsole
     });
+    listenerRelay.on("PROCESS.shutdown", function() {
+          netMonitor.stop();
+     });
 }
 
 // Ok, lets get this started
