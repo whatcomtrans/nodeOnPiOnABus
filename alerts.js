@@ -23,17 +23,19 @@ class alerter extends EventEmitter {
           _this.IMPORTANT = "IMPORTANT";
           _this.INFO = "INFO";
           _this.WARNING = "WARNING";
-		  _this.ERROR = "ERROR";
+		_this.ERROR = "ERROR";
 
           // Defaults
           if (settings === undefined) {
                _this._settings = new Object();
+          } else {
+              _this._settings = settings;
           }
 
 		  if (_this._logger === undefined) {
                _this._logger = console;
           }
-		  
+
           if (_this._settings.defaultStatus === undefined) {
                _this._settings.defaultStatus = _this.INFO;
           }
@@ -73,7 +75,7 @@ class alerter extends EventEmitter {
 		if (message.status === undefined) {
 			message.status = _this._settings.defaultStatus;
         }
-        
+
         _this._logger.log("ALERT: " + JSON.stringify(message), _this._logger.INFO)
         if ((_this._settings.mqttTopic != null) & (_this._mqttAgent != null)) {
             _this._mqttAgent.publish(_this._settings.mqttTopic, JSON.stringify(message), function(err) {
@@ -141,7 +143,7 @@ class alerter extends EventEmitter {
           var _this = this;
           return _this._settings.vehicleId;
      }
-	 
+
 	 set defaultStatus (status) {
           var _this = this;
           _this._settings.defaultStatus = status;

@@ -203,18 +203,17 @@ if (runLevel >= 6) {  // Setup alerts publisher
 
 if (runLevel >= 7) {  // Track and periodically report uptime to console
     var runTime = new Date();
-    var uptime = function() {
-        return (((new Date()) - runTime) / 1000)
-    }
-    
+
+    debugConsole.log("Uptime of " + uptime() + " seconds.", debugConsole.INFO);
+
     var runTimerShort = setInterval(function() {
-        debugConsole.log("Uptime of " + uptime() + " minutes.", debugConsole.INFO);
+        debugConsole.log("Uptime of " + Math.round((((new Date()) - runTime) / 1000)) + " seconds.", debugConsole.INFO);
     }, 1000 * 10);
     var runTimerLong = setInterval(function() {
-        debugConsole.log("Uptime of " + uptime() + " minutes.", debugConsole.INFO);
-        if (runTimerShort != NULL) {
+        debugConsole.log("Uptime of " + Math.round((((new Date()) - runTime) / 60000) + " minutes.", debugConsole.INFO);
+        if (runTimerShort != null) {
             clearInterval(runTimerShort);
-            runTimerShort = NULL;
+            runTimerShort = null;
         }
     }, 1000 * 60);
 
