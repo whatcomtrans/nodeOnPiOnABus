@@ -402,7 +402,53 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
      });
 }
 
-if (runLevel >= 41) {  // Rudementary GPS to DVR over TCP setup
+if (runLevel >= 40) {  // DVR
+     var dvrThing = new thingSettings("../settings/dvrsettings.json");
+     listenerRelay.once("AWSClient.firstConnect", function(err, client) {
+          // Create dvrThing
+          debugConsole.log("About to create fareboxThing");
+          awsClient.thingFactory("farebox" + piThing.getProperty("vehicleId"), {"persistentSubscribe": true}, false, function(err, thing) {
+               dvrThing = dvrThing.copyTo(thing);
+               listenerRelay.addEmitter("dvrThing", dvrThing);
+               commands.dvrThing = dvrThing;
+               if (err) {
+                    debugConsole.log("Error: " + err);
+               }
+               debugConsole.log(JSON.stringify(dvrThing));
+               debugConsole.log("dvrThing created");
+               // Handle connection status changes
+               dvrThing.register(function() {
+                    dvrThing.emit("registered");
+                    debugConsole.log("dvrThing registered");
+                    dvrThing.retrieveState(function(){
+                         dvrThing.reportState();
+                    });
+                    // Periodically reportState, every 10 minutes
+                    setInterval(function() {dvrThing.reportState();}, 10 * 60 * 1000);
+               });
+          });
+     });
+     listenerRelay.on("PROCESS.shutdown", function() {
+          dvrThing.end(false, function() {
+               debugConsole.log("Exiting... Stopped dvrThing", debugConsole.INFO);
+          });
+     });
+}
+
+if (runLevel >= 41) {  // Forward GPS to DVR
+     listenerRelay.on("GPS.GLL", function(data) {
+          if ((dvrThing.udpPort != null) && (dvrThing.ipAddress != null)) {
+               var udpClient = dgram.createSocket("udp4");
+               var message = new Buffer(data.raw);
+               udpClient.send(message, 0, message.length, dvrThing.udpPort, dvrThing.ipAddress,  function() {
+                    debugConsole.log("Sent to dvr: '" + message + "'");
+                    udpClient.close();
+               });
+          }
+     });
+}
+
+if (runLevel >= 42) {  // Rudementary GPS to DVR over TCP setup for Gen 5 DVRs
      var tcpDVR = null;
      var newDVRs = ["831", "832", "833", "834", "835", "836", "837"];
      if (newDVRs.indexOf(piThing.getProperty("vehicleId")) > -1 ) {
@@ -439,28 +485,28 @@ if (runLevel >= 41) {  // Rudementary GPS to DVR over TCP setup
 }
 
 if (runLevel >= 50) {  // Farebox
-     var fareboxThing = new thingSettings("../settings/fareboxsettings.json", argv);
+     var fareboxThing = new thingSettings("../settings/fareboxsettings.json");
      listenerRelay.once("AWSClient.firstConnect", function(err, client) {
-          // Create piThing
+          // Create fareboxThing
           debugConsole.log("About to create fareboxThing");
           awsClient.thingFactory("farebox" + piThing.getProperty("vehicleId"), {"persistentSubscribe": true}, false, function(err, thing) {
                fareboxThing = fareboxThing.copyTo(thing);
                listenerRelay.addEmitter("fareboxThing", fareboxThing);
-               commands.piThing = fareboxThing;
+               commands.fareboxThing = fareboxThing;
                if (err) {
                     debugConsole.log("Error: " + err);
                }
                debugConsole.log(JSON.stringify(fareboxThing));
                debugConsole.log("fareboxThing created");
                // Handle connection status changes
-               thing.register(function() {
-                    thing.emit("registered");
+               fareboxThing.register(function() {
+                    fareboxThing.emit("registered");
                     debugConsole.log("fareboxThing registered");
-                    thing.retrieveState(function(){
-                         thing.reportState();
+                    fareboxThing.retrieveState(function(){
+                         fareboxThing.reportState();
                     });
                     // Periodically reportState, every 10 minutes
-                    setInterval(function() {piThing.reportState();}, 10 * 60 * 1000);
+                    setInterval(function() {fareboxThing.reportState();}, 10 * 60 * 1000);
                });
           });
      });
