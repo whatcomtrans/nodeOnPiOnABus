@@ -210,7 +210,7 @@ if (runLevel >= 7) {  // Track and periodically report uptime to console
         debugConsole.log("Uptime of " + Math.round((((new Date()) - runTime) / 1000)) + " seconds.", debugConsole.INFO);
     }, 1000 * 10);
     var runTimerLong = setInterval(function() {
-        debugConsole.log("Uptime of " + Math.round((((new Date()) - runTime) / 60000) + " minutes.", debugConsole.INFO);
+        debugConsole.log("Uptime of " + Math.round((((new Date()) - runTime) / 60000)) + " minutes.", debugConsole.INFO);
         if (runTimerShort != null) {
             clearInterval(runTimerShort);
             runTimerShort = null;
