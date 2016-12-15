@@ -11,7 +11,7 @@ var doCheckGitVersion = true;
 
 // A run level allows us to quickly enable/disable sections of the script below
 // Each section should be ordered based on dependencies.
-var runLevel = 1;
+var runLevel = 100;
 
 // Requires
 const awsIoTThing = require("awsiotthing");
