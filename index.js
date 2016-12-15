@@ -407,7 +407,7 @@ if (runLevel >= 40) {  // DVR
      listenerRelay.once("AWSClient.firstConnect", function(err, client) {
           // Create dvrThing
           debugConsole.log("About to create fareboxThing");
-          awsClient.thingFactory("farebox" + piThing.getProperty("vehicleId"), {"persistentSubscribe": true}, false, function(err, thing) {
+          awsClient.thingFactory("dvr" + piThing.getProperty("vehicleId"), {"persistentSubscribe": true}, false, function(err, thing) {
                dvrThing = dvrThing.copyTo(thing);
                listenerRelay.addEmitter("dvrThing", dvrThing);
                commands.dvrThing = dvrThing;
