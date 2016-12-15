@@ -218,13 +218,13 @@ if (runLevel >= 7) {  // Track and periodically report uptime to console
     }, 1000 * 60);
 
      listenerRelay.on("PROCESS.shutdown", function() {
-         if (runTimerShort != NULL) {
+         if (runTimerShort != null) {
             clearInterval(runTimerShort);
-            runTimerShort = NULL;
+            runTimerShort = null;
         }
-        if (runTimerLong != NULL) {
+        if (runTimerLong != null) {
             clearInterval(runTimerLong);
-            runTimerLong = NULL;
+            runTimerLong = null;
         }
      });
 }
