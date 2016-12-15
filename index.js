@@ -2,7 +2,7 @@
 
 // index.js
 // WTA nodeOnPiOnABus
-// Version 3.4.0
+// Version 3.5.0
 // Last updated November 2016 by R. Josh Nylander
 //
 
@@ -11,7 +11,7 @@ var doCheckGitVersion = true;
 
 // A run level allows us to quickly enable/disable sections of the script below
 // Each section should be ordered based on dependencies.
-var runLevel = 100;
+var runLevel = 1000;
 
 // Requires
 const awsIoTThing = require("awsiotthing");
