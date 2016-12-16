@@ -121,6 +121,7 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
                Object.assign(debugConsole, settings);
           }
      });
+
      commands.debugConsole = debugConsole;
 }
 
@@ -284,6 +285,7 @@ if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
           if (id != piThing.getProperty("vehicleId")) {
                debugConsole.log("Updating vehicleId from " + piThing.getProperty("vehicleId") + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
                piThing.setProperty("vehicleId", id);
+               debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
                piThing.writeSettings(function() {process.shutdown();});
           }
      });
