@@ -326,7 +326,8 @@ if (runLevel >= 21) {  // MQTT remote command processing support
           f.call(commands, commands);
      }
      listenerRelay.once("piThing.registered", function() {
-          awsClient.subscribe("/vehicles/" + piThing.thingName + "/commands", {"qos": 0}, function(err, granted) {
+         var topicName = "/vehicles/" + piThing.thingName + "/commands";
+          awsClient.subscribe(topicName, {"qos": 0}, function(err, granted) {
                if (err) {
                     debugConsole.log("Error subscribing: " + err);
                } else {
@@ -335,7 +336,7 @@ if (runLevel >= 21) {  // MQTT remote command processing support
                     });
                     piThing.on("message", function(topic, message) {
                          debugConsole.log("Recieved on topic " + topic + " message: " + message);
-                         if (topic.endsWith("/commands")) {
+                         if (topic == topicName) {
                               mqttCommands(message);
                          }
                     });
@@ -343,7 +344,8 @@ if (runLevel >= 21) {  // MQTT remote command processing support
           });
      });
      listenerRelay.once("AWSClient.firstConnect", function() {
-          awsClient.subscribe("/vehicles/pi/commands", {"qos": 0}, function(err, granted) {
+         var topicName = "/vehicles/pi/commands";
+          awsClient.subscribe(topicName, {"qos": 0}, function(err, granted) {
                if (err) {
                     debugConsole.log("Error subscribing: " + err);
                } else {
@@ -352,7 +354,7 @@ if (runLevel >= 21) {  // MQTT remote command processing support
                     });
                     piThing.on("message", function(topic, message) {
                          debugConsole.log("Recieved on topic " + topic + " message: " + message);
-                         if (topic.endsWith("/commands")) {
+                         if (topic == topicName) {
                               mqttCommands(message);
                          }
                     });
@@ -436,7 +438,7 @@ if (runLevel >= 40) {  // DVR
 }
 
 if (runLevel >= 41) {  // Forward GPS to DVR
-     listenerRelay.on("GPS.GLL", function(data) {
+     listenerRelay.on("GPS.RMC", function(data) {
           if ((dvrThing.udpPort != null) && (dvrThing.ipAddress != null)) {
                var udpClient = dgram.createSocket("udp4");
                var message = new Buffer(data.raw);
