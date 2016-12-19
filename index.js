@@ -367,9 +367,10 @@ if (runLevel >= 21) {  // MQTT remote command processing support
 }
 
 if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
-     listenerRelay.on("AWSClient.firstConnect", function() {          listenerRelay.on("GPS.RLN", function (data) {
-               awsClient.publish("/vehicles/GPS.RLN.message/" + piThing.getProperty("vehicleId"), data.raw);
-          });
+     listenerRelay.on("AWSClient.firstConnect", function() {
+         listenerRelay.every("GPS.RLN", function (data) {
+            awsClient.publish("/vehicles/GPS.RLN.message/" + piThing.getProperty("vehicleId"), data.raw);
+         }, {method: "counter", count: 10});
      });
 }
 
@@ -531,7 +532,7 @@ if (runLevel >= 51) {  // Forward GPS to Farebox
                     udpClient.close();
                });
           }
-     }, {method: "counter", dely: 10});
+     }, {method: "counter", count: 10});
 }
 
 if (runLevel >= 60) {  // Test connectivity to other devices via PING
