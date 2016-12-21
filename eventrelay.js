@@ -1,5 +1,7 @@
 "use strict";
 
+const EventEmitter = require('events');
+
 class eventRelay {
 
 	constructor () {
@@ -24,6 +26,12 @@ class eventRelay {
 
      addEmitter(prefix, emitter) {
           var _this = this;
+          
+          // Update the emitter to expect a lot more requests
+          if (emitter.getMaxListeners() == EventEmitter.defaultMaxListeners) {
+            emitter.setMaxListeners(EventEmitter.defaultMaxListeners * 10);
+          }
+
           _this._emitters.set(prefix, emitter);
           _this._logger.log("Adding emitter as " + prefix);
 
