@@ -50,6 +50,7 @@ var commands = new Object();
 */
 const listenerRelay = require("./eventrelay").relayFactory();
 listenerRelay.logger = debugConsole;
+commands.listenerRelay = listenerRelay;
 
 // Extend the process object to support a startup and shutdown event model
 process.startup = function() {
@@ -268,7 +269,7 @@ if (runLevel >= 10) {   // GPS lisener
 if (runLevel >= 11) {
      listenerRelay.on("GPS.rawdata", function (msgString) {
           if (msgString.indexOf(">RLN") > -1) {
-               debugConsole.log("Found a RLN message: " + msgString)  //, parsed as: " + JSON.stringify(gpsDevice.Parse(msgString)));
+               //debugConsole.log("Found a RLN message: " + msgString)  //, parsed as: " + JSON.stringify(gpsDevice.Parse(msgString)));
                //SAMPLE RLN MESSAGE:
                //>RLN81160000+487864486-1224486923+000180380019+0000174204083E103516402728000000000012;ID=B832;*43<
                gpsDevice.emit("RLN", {raw: msgString});
