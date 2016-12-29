@@ -23,6 +23,8 @@ const dgram = require("dgram");
 const thingSettings = require("./thingsettings.js");
 var debugConsole = require("./debugconsole").consoleFactory();
 
+const CRLF = String.fromCharCode(13) + String.fromCharCode(10);
+
 // Gather command line arguments and setup Defaults
 // https://github.com/yargs/yargs
 // DEFAULT values
@@ -445,7 +447,7 @@ if (runLevel >= 41) {  // Forward GPS to DVR
      listenerRelay.on("GPS.RMC", function(data) {
           if ((dvrThing.udpPort != null) && (dvrThing.ipAddress != null)) {
                var udpClient = dgram.createSocket("udp4");
-               var message = new Buffer(data.raw);
+               var message = Buffer.from(data.raw + CRLF, "ascii");
                udpClient.send(message, 0, message.length, dvrThing.udpPort, dvrThing.ipAddress,  function() {
                     debugConsole.log("Sent to dvr: '" + message + "'");
                     udpClient.close();
@@ -465,11 +467,6 @@ if (runLevel >= 42) {  // Rudementary GPS to DVR over TCP setup for Gen 5 DVRs
                }
           });
 
-          function sendToDVR(message) {
-               debugConsole.log("Send to DVR success: " + tcpDVR.write(message +  String.fromCharCode(13), "ascii"));
-          }
-          commands.sendToDVR = sendToDVR;
-
           debugConsole.log("Creating connection to DVR...");
           tcpDVR = net.createConnection(5070, "192.168.1.129", function(){
                debugConsole.log("Connection established to DVR");
@@ -481,10 +478,8 @@ if (runLevel >= 42) {  // Rudementary GPS to DVR over TCP setup for Gen 5 DVRs
                     }
                });
                listenerRelay.on("GPS.RMC", function(data){
-                    var msg = data.raw;
-                    debugConsole.log("Sending data to DVR: " + msg);
-                    //piThing.reportProperty("dvrGPSmsg", msg, true);
-                    sendToDVR(msg);
+                    var message = Buffer.from(data.raw + CRLF, "ascii");
+                    debugConsole.log("Send to DVR success: " + tcpDVR.write(message));
                });
           });
      }
@@ -526,14 +521,19 @@ if (runLevel >= 50) {  // Farebox
 if (runLevel >= 51) {  // Forward GPS to Farebox
      listenerRelay.every("GPS.GLL", function(data) {
           if ((fareboxThing.udpPort != null) && (fareboxThing.ipAddress != null)) {
+               var fareboxMethod = "Sent";
                var udpClient = dgram.createSocket("udp4");
-               var message = new Buffer(data.raw);
+               if ((fareboxThing.isBroadcast != null) && (fareboxThing.isBroadcast == true)) {
+                   udpClient.setBroadcast(true);
+                   fareboxMethod = "Broadcase";
+               }
+               var message = Buffer.from(data.raw + CRLF, "ascii");
                udpClient.send(message, 0, message.length, fareboxThing.udpPort, fareboxThing.ipAddress,  function() {
-                    debugConsole.log("Sent to farebox: '" + message + "'");
+                    debugConsole.log(fareboxMethod + " to farebox at ip " + fareboxThing.ipAddress + ":" + fareboxThing.udpPort +" string -> '" + message + "'");
                     udpClient.close();
                });
           }
-     }, {method: "counter", count: 10});
+     }, {method: "counter", count: 15});
 }
 
 if (runLevel >= 60) {  // Test connectivity to other devices via PING
