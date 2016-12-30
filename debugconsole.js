@@ -22,7 +22,8 @@ class debugConsole extends EventEmitter {
           // level
           _this.IMPORTANT = 1;
           _this.INFO = 2;
-          _this.DEBUG = 3
+          _this.DEBUG = 3;
+          _this.ANNOYING = 4;
 
           // output
           _this.CONSOLEONLY = "CONSOLEONLY";
@@ -68,6 +69,9 @@ class debugConsole extends EventEmitter {
                          break;
                     case 3:
                          levelName = "DEBUG";
+                         break;
+                    case 4:
+                         levelName = "ANNOYING";
                          break;
                }
                var msg = "[" + (new Date()).toUTCString() + "] " + levelName + ": " + message;
@@ -140,6 +144,9 @@ class debugConsole extends EventEmitter {
                          break;
                     case _this.DEBUG:
                          level = _this.DEBUG;
+                         break;
+                    case _this.ANNOYING:
+                         level = _this.ANNOYING;
                          break;
                     default:
                          level = _this.DEBUG;

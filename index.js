@@ -454,7 +454,7 @@ if (runLevel >= 41) {  // Forward GPS to DVR
                var udpClient = dgram.createSocket("udp4");
                var message = Buffer.from(data.raw + CRLF, "ascii");
                udpClient.send(message, 0, message.length, dvrThing.udpPort, dvrThing.ipAddress,  function() {
-                    debugConsole.log("Sent to dvr: '" + message + "'");
+                    debugConsole.log("Sent to dvr: '" + message + "'", debugConsole.ANNOYING);
                     udpClient.close();
                });
           }
