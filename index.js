@@ -146,8 +146,9 @@ if (runLevel >= 5) {   // Git versioning
                     if (error) {
                          console.error(`exec error: ${error}`);
                     } else {
-                         debugConsole.log("Current git commit is: " + stdout.replace(/(\r\n|\n|\r)/gm,""), debugConsole.INFO);
-                         piThing.reportProperty("commit", stdout.replace(/(\r\n|\n|\r)/gm,""));
+                        var curCommit = stdout.replace(/(\r\n|\n|\r)/gm,"");
+                         debugConsole.log("Current git commit is: " + curCommit), debugConsole.INFO);
+                         piThing.reportProperty("commit", curCommit);
 
                          // Get notified of the version delta
                          debugConsole.log("Delta git commit is: " + piThing.getDeltaProperty("commit"), debugConsole.INFO);
@@ -429,6 +430,7 @@ if (runLevel >= 40) {  // DVR
                }
                debugConsole.log(JSON.stringify(dvrThing));
                debugConsole.log("dvrThing created");
+               dvrThing.makeLocalMatchDesired = true;
                // Handle connection status changes
                dvrThing.register(function() {
                     dvrThing.emit("registered");
@@ -530,6 +532,7 @@ if (runLevel >= 51) {  // Forward GPS to Farebox
           if ((fareboxThing.udpPort != null) && (fareboxThing.ipAddress != null)) {
                var fareboxMethod = "Sent";
                var udpClient = dgram.createSocket("udp4");
+               udpClient.bind();
                if ((fareboxThing.isBroadcast != null) && (fareboxThing.isBroadcast == true)) {
                    udpClient.setBroadcast(true);
                    fareboxMethod = "Broadcase";
