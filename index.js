@@ -399,7 +399,12 @@ if (runLevel >= 30) {  // AWS IoT thing representing this Pi
                          thing.reportState();
                     });
                     // Periodically reportState, every 10 minutes
-                    setInterval(function() {piThing.reportState(); piThing.writeSettings()}, 10 * 60 * 1000);
+                    setInterval(function() {
+                        thing.retrieveState(function(){
+                            thing.reportState();
+                        });
+                        piThing.writeSettings()
+                    }, 10 * 60 * 1000);
                });
           });
      });

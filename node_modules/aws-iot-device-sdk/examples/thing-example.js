@@ -116,8 +116,7 @@ function processTest(args) {
 
    function mobileAppConnect() {
       thingShadows.register(thingName, {
-            ignoreDeltas: false,
-            operationTimeout: operationTimeout
+            ignoreDeltas: false
          },
          function(err, failedTopics) {
             if (isUndefined(err) && isUndefined(failedTopics)) {
@@ -128,8 +127,7 @@ function processTest(args) {
 
    function deviceConnect() {
       thingShadows.register(thingName, {
-            ignoreDeltas: true,
-            operationTimeout: operationTimeout
+            ignoreDeltas: true
          },
          function(err, failedTopics) {
             if (isUndefined(err) && isUndefined(failedTopics)) {

@@ -741,7 +741,7 @@ function DeviceClient(options) {
                callback: callback
             });
          } else {
-            that.emit('error', 'Maximum queued offline subscription operations reached.');
+            that.emit('error', new Error('Maximum queued offline subscription reached'));
          }
       }
    };

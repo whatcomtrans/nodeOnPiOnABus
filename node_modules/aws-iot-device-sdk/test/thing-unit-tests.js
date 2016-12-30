@@ -159,6 +159,41 @@ describe( "thing shadow class unit tests", function() {
          assert(fakeCallback2.calledOnce);
       });
    });
+   describe( "subscribe to/unsubscribe from a non-thing topic array", function() {
+//
+// Verify that the thing shadow module does not throw an exception
+// when we subscribe to and unsubscribe from a non-thing topic.
+//
+      it("does not throw an exception", function() { 
+         var fakeCallback1 = sinon.spy();
+         var fakeCallback2 = sinon.spy();
+         var topicArray = [];
+         assert.doesNotThrow( function( err ) { 
+            var thingShadows = thingShadow( { 
+               keyPath:'test/data/private.pem.key', 
+               certPath:'test/data/certificate.pem.crt', 
+               caPath:'test/data/root-CA.crt',
+               clientId:'dummy-client-1',
+               region:'us-east-1'
+               } );
+            var MAX_TOPIC_ARRAY_SIZE = 8;
+            for (var i = 1; i <= MAX_TOPIC_ARRAY_SIZE; i++) {
+               var topicName = 'nonThingTopic' + i;
+               topicArray.push(topicName);
+            }
+               thingShadows.subscribe(topicArray, {}, fakeCallback1);
+               thingShadows.unsubscribe(topicArray, fakeCallback2);
+            }, function(err) { console.log('\t['+err+']'); return true;}
+         ); 
+         assert(fakeCallback1.calledOnce);
+         assert(fakeCallback2.calledOnce);
+         for (var i = 0; i < topicArray.length; i++) {
+            var topicName = topicArray.shift();
+            assert.equal(mockMQTTClientObject.subscriptions.shift(), topicName);
+            assert.equal(mockMQTTClientObject.unsubscriptions.shift(), topicName);
+         }
+      });
+   });
 
    describe( "publish to a non-thing topic", function() {
 //
@@ -200,6 +235,26 @@ describe( "thing shadow class unit tests", function() {
       });
    });
 
+   describe( "subscribe to an topic array which contains an illegal non-thing topic", function() {
+//
+// Verify that the thing shadow module throws an exception if we
+// attempt to subscribe to an illegal non-thing topic.
+//
+      it("throws an exception", function() { 
+         assert.throws( function( err ) { 
+            var thingShadows = thingShadow( { 
+               keyPath:'test/data/private.pem.key', 
+               certPath:'test/data/certificate.pem.crt', 
+               caPath:'test/data/root-CA.crt',
+               clientId:'dummy-client-1',
+               region:'us-east-1'
+               } );
+               thingShadows.subscribe( ['topic1', '$aws/things/nonThingTopic1', 'topic2']);
+            }, function(err) { console.log('\t['+err+']'); return true;}
+            ); 
+      });
+   });
+
    describe( "publish to an illegal non-thing topic", function() {
 //
 // Verify that the thing shadow module throws an exception if we
@@ -236,6 +291,25 @@ describe( "thing shadow class unit tests", function() {
                region:'us-east-1'
                } );
                thingShadows.unsubscribe( '$aws/things/nonThingTopic1' );
+            }, function(err) { console.log('\t['+err+']'); return true;}
+            ); 
+      });
+   });
+   describe( "unsubscribe from an array which contains illegal non-thing topic", function() {
+//
+// Verify that the thing shadow module throws an exception if we
+// attempt to unsubscribe from an illegal non-thing topic.
+//
+      it("throws an exception", function() { 
+         assert.throws( function( err ) { 
+            var thingShadows = thingShadow( { 
+               keyPath:'test/data/private.pem.key', 
+               certPath:'test/data/certificate.pem.crt', 
+               caPath:'test/data/root-CA.crt',
+               clientId:'dummy-client-1',
+               region:'us-east-1'
+               } );
+               thingShadows.unsubscribe( ['topic1', '$aws/things/nonThingTopic1', 'topic2'] );
             }, function(err) { console.log('\t['+err+']'); return true;}
             ); 
       });

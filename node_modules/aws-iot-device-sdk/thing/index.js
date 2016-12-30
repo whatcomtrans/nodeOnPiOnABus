@@ -708,22 +708,36 @@ function ThingShadowsClient(deviceOptions, thingShadowOptions) {
    //
    // Subscribe to non-thing topics.
    //
-   this.subscribe = function(topic, options, callback) {
-      if (!isReservedTopic(topic)) {
-         device.subscribe(topic, options, callback);
-      } else {
-         throw ('cannot subscribe to reserved topic \'' + topic + '\'');
+   this.subscribe = function(topics, options, callback) {
+      var topicsArray = [];
+      if (typeof topics === 'string') {
+         topicsArray.push(topics);
+      } else if (typeof topics === 'object' && topics.length) {
+         topicsArray = topics;
       }
+      for (var i = 0; i < topicsArray.length; i++) {
+         if (isReservedTopic(topicsArray[i])) {
+            throw ('cannot subscribe to topic array since one of them is a reserved topic \'' + topicsArray[i] + '\'');
+         }
+      }
+      device.subscribe(topicsArray, options, callback);
    };
    //
    // Unsubscribe from non-thing topics.
    //
-   this.unsubscribe = function(topic, callback) {
-      if (!isReservedTopic(topic)) {
-         device.unsubscribe(topic, callback);
-      } else {
-         throw ('cannot unsubscribe from reserved topic \'' + topic + '\'');
+   this.unsubscribe = function(topics, callback) {
+      var topicsArray = [];
+      if (typeof topics === 'string') {
+         topicsArray.push(topics);
+      } else if (typeof topics === 'object' && topics.length) {
+         topicsArray = topics;
       }
+      for (var i = 0; i < topicsArray.length; i++) {
+         if (isReservedTopic(topicsArray[i])) {
+            throw ('cannot unsubscribe from topic array since one of them is a reserved topic \'' + topicsArray[i] + '\'');
+         }
+      }
+      device.unsubscribe(topicsArray, callback);
    };
    //
    // Close the device connection; this will be passed through to

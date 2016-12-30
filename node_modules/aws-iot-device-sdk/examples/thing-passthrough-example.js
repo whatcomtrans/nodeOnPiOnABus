@@ -20,6 +20,7 @@
 //app deps
 const thingShadow = require('..').thingShadow;
 const cmdLineProcess = require('./lib/cmdline');
+const isUndefined = require('../common/lib/is-undefined');
 
 //begin module
 
@@ -73,7 +74,6 @@ function processTest(args) {
 
    function genericOperation(operation, state) {
       var clientToken = thingShadows[operation](thingName, state);
-
       if (clientToken === null) {
          //
          // The thing shadow operation can't be performed because another one
@@ -112,8 +112,7 @@ function processTest(args) {
       // data to the non-thing topic.
       //
       thingShadows.register(thingName, {
-         ignoreDeltas: false,
-         operationTimeout: operationTimeout
+         ignoreDeltas: false
       });
    }
 
@@ -123,11 +122,13 @@ function processTest(args) {
       // topic.
       //
       thingShadows.register(thingName, {
-         ignoreDeltas: true,
-         operationTimeout: operationTimeout
-      });
-      genericOperation('update', generateState());
-      thingShadows.subscribe(nonThingName);
+         ignoreDeltas: true
+      }, function(err, failedTopics){
+            if (isUndefined(err) && isUndefined(failedTopics)) {
+               genericOperation('update', generateState());
+               thingShadows.subscribe(nonThingName);
+            }
+         });
    }
 
    if (args.testMode === 1) {
