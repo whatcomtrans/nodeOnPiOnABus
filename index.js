@@ -504,6 +504,7 @@ if (runLevel >= 50) {  // Farebox
                }
                debugConsole.log(JSON.stringify(fareboxThing));
                debugConsole.log("fareboxThing created");
+               fareboxThing.makeLocalMatchDesired = true;
                // Handle connection status changes
                fareboxThing.register(function() {
                     fareboxThing.emit("registered");
@@ -516,6 +517,7 @@ if (runLevel >= 50) {  // Farebox
                });
           });
      });
+
      listenerRelay.on("PROCESS.shutdown", function() {
           fareboxThing.end(false, function() {
                debugConsole.log("Exiting... Stopped fareboxThing", debugConsole.INFO);
