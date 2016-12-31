@@ -147,7 +147,7 @@ if (runLevel >= 5) {   // Git versioning
                          console.error(`exec error: ${error}`);
                     } else {
                         var curCommit = stdout.replace(/(\r\n|\n|\r)/gm,"");
-                         debugConsole.log("Current git commit is: " + curCommit), debugConsole.INFO);
+                         debugConsole.log("Current git commit is: " + curCommit, debugConsole.INFO);
                          piThing.reportProperty("commit", curCommit);
 
                          // Get notified of the version delta
