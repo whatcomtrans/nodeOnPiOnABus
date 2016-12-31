@@ -11,7 +11,7 @@ var doCheckGitVersion = true;
 
 // A run level allows us to quickly enable/disable sections of the script below
 // Each section should be ordered based on dependencies.
-var runLevel = 39;  // TODO Disabled farebox and DVR until further testing is completed.
+var runLevel = 1;
 
 // Requires
 const awsIoTThing = require("awsiotthing");
@@ -34,7 +34,7 @@ var argv = require('yargs')
           .choices('debugOutput', ['CONSOLEONLY', 'CONSOLEMQTT', 'MQTTONLY', 'NONE'])
           .coerce('debugOuput', function(arg) {return arg.toUpperCase();})
           .default('debugLevel', debugConsole.DEBUG)
-          .default('runLevel', 1000)
+          .default('runLevel', 39) // TODO Disabled farebox and DVR until further testing is completed.
           .boolean('doCheckGitVersion')
           .default('doCheckGitVersion', doCheckGitVersion)
           .argv;
