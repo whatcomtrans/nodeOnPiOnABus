@@ -374,7 +374,7 @@ if (runLevel >= 25) {  // Publish RLN messages to mqtt topic for AVL
      listenerRelay.on("AWSClient.firstConnect", function() {
          listenerRelay.every("GPS.RLN", function (data) {
             awsClient.publish("/vehicles/GPS.RLN.message/" + piThing.getProperty("vehicleId"), data.raw);
-         }, {method: "counter", count: 10});
+         }, {method: "counter", count: 1});
      });
 }
 
