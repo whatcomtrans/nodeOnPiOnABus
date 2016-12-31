@@ -11,7 +11,7 @@ var doCheckGitVersion = true;
 
 // A run level allows us to quickly enable/disable sections of the script below
 // Each section should be ordered based on dependencies.
-var runLevel = 1000;
+var runLevel = 39;  // TODO Disabled farebox and DVR until further testing is completed.
 
 // Requires
 const awsIoTThing = require("awsiotthing");
