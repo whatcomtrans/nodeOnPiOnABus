@@ -47,6 +47,10 @@ class debugConsole extends EventEmitter {
           if (_this._settings.mqttTopic === undefined) {
                _this._settings.mqttTopic = null;
           }
+          
+          if (_this._settings.name === undefined) {
+               _this._settings.name = "noname";
+          }
           _this._mqttAgent = null;
      }
 
@@ -74,7 +78,7 @@ class debugConsole extends EventEmitter {
                          levelName = "ANNOYING";
                          break;
                }
-               var msg = "[" + (new Date()).toUTCString() + "] " + levelName + ": " + message;
+               var msg = "[" + (new Date()).toUTCString() + "] " + _this._settings.name + " " + levelName + ": " + message;
                _this.emit("logged", msg, message, level, levelName, debugOutput)
                switch (debugOutput) {
                     case _this.CONSOLEONLY:
@@ -175,6 +179,20 @@ class debugConsole extends EventEmitter {
      get mqttAgent () {
           var _this = this;
           return _this._mqttAgent;
+     }
+
+     get name () {
+         var _this = this;
+         return _this._settings.name;
+     }
+
+     set name(value) {
+        var _this = this;
+        if (value != undefined) {
+            _this._settings.name = value;
+            _this.emit("changed.name", _this._settings.name);
+            _this.emit("changed", "name", _this._settings);
+        }
      }
 
      set mqttTopic (topic) {

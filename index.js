@@ -34,7 +34,7 @@ var argv = require('yargs')
           .choices('debugOutput', ['CONSOLEONLY', 'CONSOLEMQTT', 'MQTTONLY', 'NONE'])
           .coerce('debugOuput', function(arg) {return arg.toUpperCase();})
           .default('debugLevel', debugConsole.DEBUG)
-          .default('runLevel', 39) // TODO Disabled farebox and DVR until further testing is completed.
+          .default('runLevel', 39) // TODO Disabled farebox and DVR until further testing is completed.  Change back to 1000
           .boolean('doCheckGitVersion')
           .default('doCheckGitVersion', doCheckGitVersion)
           .argv;
@@ -108,10 +108,12 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
      listenerRelay.on("LOGGER.changed", function(name, settings) {
           debugConsole.log("debugConsole detected settings change to setting: " + name + ".  New settings are: " + JSON.stringify(settings) + ", saving...");
           piThing.reportProperty("debugConsole", settings, false, function() {
+              debugConsole.log("New settings saved to AWS.");
                piThing.writeSettings();
           });
      });
      listenerRelay.on("piThing.registered", function() {
+          debugConsole.name = piThing.thingName;
           if (debugConsole.mqttTopic == null) {
                debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
           }
@@ -120,12 +122,13 @@ if (runLevel >= 4) {  // Advanced debugConsole setup
      listenerRelay.on("piThing.delta", function(state) {
           if (piThing.getDeltaProperty("debugConsole") != null) {
                var settings = piThing.getDeltaProperty("debugConsole");
-               debugConsole.log("Changing debugConsole settings to: " + settings, debugConsole.INFO);
+               debugConsole.log("Changing debugConsole settings to: " + JSON.stringify(settings), debugConsole.INFO);
                Object.assign(debugConsole, settings);
           }
      });
 
      commands.debugConsole = debugConsole;
+     commands.log = debugConsole.log;
 }
 
 if (runLevel >= 5) {   // Git versioning
@@ -289,7 +292,7 @@ if (runLevel >= 12) {  // Changing vehicleID based on RLN from GPS
           if (id != piThing.getProperty("vehicleId")) {
                debugConsole.log("Updating vehicleId from " + piThing.getProperty("vehicleId") + " to " + id + ", writing new settings and shutting down.", debugConsole.INFO);
                piThing.setProperty("vehicleId", id);
-               debugConsole.mqttTopic = "/vehicles/" + piThing.thingName + "/console";
+               debugConsole.mqttTopic = "/vehicles/pi" + id + "/console";
                piThing.writeSettings(function() {process.shutdown();});
           }
      });
