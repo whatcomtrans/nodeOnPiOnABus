@@ -443,9 +443,11 @@ if (runLevel >= 40) {  // DVR
                     });
                     // Periodically reportState, every 10 minutes
                     setInterval(function() {dvrThing.reportState();}, 10 * 60 * 1000);
-                    listenerRelay.on("dvrThing.delta", function(state) {
-                        debugConsole.log("dvrThing delta recieved: " + JSON.stringify(state), debugConsole.ANNOYING);
-                        dvrThing.copyTo(state.state);
+                    listenerRelay.on("dvrThing.delta", function(delta) {
+                        debugConsole.log("dvrThing delta recieved: " + JSON.stringify(delta.state), debugConsole.ANNOYING);
+                        debugConsole.log("Before: " + JSON.stringify(dvrThing), debugConsole.ANNOYING);
+                        dvrThing.copyTo(delta.state);
+                        debugConsole.log("After: " + JSON.stringify(dvrThing), debugConsole.ANNOYING);
                         dvrThing.writeSettings();
                         dvrThing.reportState();
                     });
