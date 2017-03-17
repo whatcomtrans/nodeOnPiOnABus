@@ -11,8 +11,7 @@
             "program": "${workspaceRoot}\\index.js",
             "cwd": "${workspaceRoot}",
             "args": [
-                "--doCheckGitVersion=false",
-                "--runLevel=30"
+                "--doCheckGitVersion=false"
             ]
         },
         {

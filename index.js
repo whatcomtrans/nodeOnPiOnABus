@@ -34,7 +34,7 @@ var argv = require('yargs')
           .choices('debugOutput', ['CONSOLEONLY', 'CONSOLEMQTT', 'MQTTONLY', 'NONE'])
           .coerce('debugOuput', function(arg) {return arg.toUpperCase();})
           .default('debugLevel', debugConsole.DEBUG)
-          .default('runLevel', 39) // TODO Disabled farebox and DVR until further testing is completed.  Change back to 1000
+          .default('runLevel', 41) // TODO Disabled farebox and DVR until further testing is completed.  Change back to 1000
           .boolean('doCheckGitVersion')
           .default('doCheckGitVersion', doCheckGitVersion)
           .argv;
@@ -443,6 +443,9 @@ if (runLevel >= 40) {  // DVR
                     });
                     // Periodically reportState, every 10 minutes
                     setInterval(function() {dvrThing.reportState();}, 10 * 60 * 1000);
+                    listenerRelay.on("dvrThing.delta", function(state) {
+                        dvrThing.writeSettings();
+                    });
                });
           });
      });
@@ -453,46 +456,39 @@ if (runLevel >= 40) {  // DVR
      });
 }
 
-if (runLevel >= 41) {  // Forward GPS to DVR
-     listenerRelay.on("GPS.RMC", function(data) {
-          if ((dvrThing.udpPort != null) && (dvrThing.ipAddress != null)) {
-               var udpClient = dgram.createSocket("udp4");
-               var message = Buffer.from(data.raw + CRLF, "ascii");
-               udpClient.send(message, 0, message.length, dvrThing.udpPort, dvrThing.ipAddress,  function() {
-                    debugConsole.log("Sent to dvr: '" + message + "'", debugConsole.ANNOYING);
-                    udpClient.close();
-               });
-          }
-     });
-}
-
-if (runLevel >= 42) {  // Rudementary GPS to DVR over TCP setup for Gen 5 DVRs
-     var tcpDVR = null;
-     var newDVRs = ["831", "832", "833", "834", "835", "836", "837"];
-     if (newDVRs.indexOf(piThing.getProperty("vehicleId")) > -1 ) {
-          listenerRelay.on("PROCESS.shutdown", function() {
-               if (tcpDVR != null) {
+if (runLevel >= 41) {
+    listenerRelay.on("GPS.RMC", function(data) {
+        var msgString = data.raw;
+        debugConsole.log("DVR GPS RAW DATA TO SEND: " + msgString, debugConsole.ANNOYING);
+        if (dvrThing.type == "udp") {
+            if ((dvrThing.udpPort != null) && (dvrThing.ipAddress != null)) {
+                dvrThing.udpClient = dgram.createSocket("udp4");
+                var message = Buffer.from(msgString + CRLF);
+                dvrThing.udpClient.send(message, 0, message.length, dvrThing.udpPort, dvrThing.ipAddress,  function() {
+                        debugConsole.log("Sent to dvr: '" + message + "'", debugConsole.ANNOYING);
+                        dvrThing.udpClient.close();
+                });
+            }
+        } else if (dvrThing.type == "tcpServer") {
+            if ((dvrThing.tcpPort != null) && (dvrThing.ipAddress != null)) {
+                debugConsole.log("Creating connection to DVR...");
+                dvrThing.tcpClient = net.createConnection(dvrThing.tcpPort, dvrThing.ipAddress, function(){
+                    debugConsole.log("Connection established to DVR");
+                    dvrThing.tcpClient.on("close", function(had_error){
+                        if (had_error) {
+                            debugConsole.log("Connection to DVR closed due to error.")
+                        } else {
+                            debugConsole.log("Connection to DVR closed.")
+                        }
+                    });
+                    var message = Buffer.from(msgString + CRLF);
+                    debugConsole.log("Send to DVR success: " + dvrThing.tcpClient.write(message));
                     debugConsole.log("Exiting... Stopping tcpDVR stream", debugConsole.INFO);
-                    tcpDVR.end();
-               }
-          });
-
-          debugConsole.log("Creating connection to DVR...");
-          tcpDVR = net.createConnection(5070, "192.168.1.129", function(){
-               debugConsole.log("Connection established to DVR");
-               tcpDVR.on("close", function(had_error){
-                    if (had_error) {
-                         debugConsole.log("Connection to DVR closed due to error.")
-                    } else {
-                         debugConsole.log("Connection to DVR closed.")
-                    }
-               });
-               listenerRelay.on("GPS.RMC", function(data){
-                    var message = Buffer.from(data.raw + CRLF, "ascii");
-                    debugConsole.log("Send to DVR success: " + tcpDVR.write(message));
-               });
-          });
-     }
+                    dvrThing.tcpClient.end();
+                });
+            }
+        }
+    });
 }
 
 if (runLevel >= 50) {  // Farebox
