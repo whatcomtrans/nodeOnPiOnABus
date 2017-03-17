@@ -433,7 +433,7 @@ if (runLevel >= 40) {  // DVR
                }
                debugConsole.log(JSON.stringify(dvrThing));
                debugConsole.log("dvrThing created");
-               dvrThing.makeLocalMatchDesired = true;
+               // dvrThing.makeLocalMatchDesired = true;
                // Handle connection status changes
                dvrThing.register(function() {
                     dvrThing.emit("registered");
@@ -444,7 +444,8 @@ if (runLevel >= 40) {  // DVR
                     // Periodically reportState, every 10 minutes
                     setInterval(function() {dvrThing.reportState();}, 10 * 60 * 1000);
                     listenerRelay.on("dvrThing.delta", function(state) {
-                        dvrThing.writeSettings();
+                        debugConsole.log("dvrThing delta recieved: " + JSON.stringify(state), debugConsole.ANNOYING);
+                        //dvrThing.writeSettings();
                     });
                });
           });
@@ -465,7 +466,7 @@ if (runLevel >= 41) {
                 dvrThing.udpClient = dgram.createSocket("udp4");
                 var message = Buffer.from(msgString + CRLF);
                 dvrThing.udpClient.send(message, 0, message.length, dvrThing.udpPort, dvrThing.ipAddress,  function() {
-                        debugConsole.log("Sent to dvr: '" + message + "'", debugConsole.ANNOYING);
+                        debugConsole.log("Sent to dvr " + dvrThing.ipAddress + ":" + dvrThing.udpPort + ":'" + message + "'", debugConsole.ANNOYING);
                         dvrThing.udpClient.close();
                 });
             }
