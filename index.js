@@ -445,7 +445,9 @@ if (runLevel >= 40) {  // DVR
                     setInterval(function() {dvrThing.reportState();}, 10 * 60 * 1000);
                     listenerRelay.on("dvrThing.delta", function(state) {
                         debugConsole.log("dvrThing delta recieved: " + JSON.stringify(state), debugConsole.ANNOYING);
-                        //dvrThing.writeSettings();
+                        dvrThing.copyTo(state.state);
+                        dvrThing.writeSettings();
+                        dvrThing.reportState();
                     });
                });
           });
